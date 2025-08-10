@@ -5,7 +5,7 @@ try
     end tell
 on error
     -- If shortcut doesn't exist, open the iCloud link to import it
-    do shell script "open 'https://www.icloud.com/shortcuts/596cf3482ce84a34a4c306c0d6bc47be'"
+    do shell script "open 'https://www.icloud.com/shortcuts/89aa272bdccb4b719f85ddaed48515b5'"
     delay 20 -- wait for user to confirm import
     tell application "Shortcuts Events"
         run shortcut shortcutName

@@ -11,6 +11,12 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 3000
-  }
-})
+    port: 3000,
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+  },
+  publicDir: path.resolve(__dirname, 'public'),
+  assetsInclude: ['**/*.wasm', '**/*.task']
+  })

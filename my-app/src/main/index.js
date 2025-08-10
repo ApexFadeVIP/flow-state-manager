@@ -14,14 +14,11 @@ function createWindow () {
       // Enable WASM
       experimentalFeatures: true,
       // Allow camera access
-      permissions: ['camera']
-    }
-  })
-      nodeIntegration: false,
-      contextIsolation: true,
+      permissions: ['camera'],
       preload: path.join(__dirname, 'preload.js')
     }
-  });
+  })
+
 
   ipcMain.handle('toggle-focus', async (event, isOn) => {
     const scriptName = isOn ? 'ToggleFocusOn.scpt' : 'ToggleFocusOff.scpt';
@@ -34,9 +31,7 @@ function createWindow () {
     });
   });
 
-  const startURL = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3000'  // 👈 must match Vite
-    : `file://${path.join(__dirname, '/renderer/index.html')}`
+  
   const startURL = process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'
     : `file://${path.join(__dirname, '/renderer/index.html')}`;

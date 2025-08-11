@@ -6,10 +6,19 @@
         <span class="focus-label">{{ checked ? 'Deactivate' : 'Activate' }} Focus Mode</span>
       </div>
       <h1 class="header-title">UltraFlow</h1>
-      <button class="spotify-btn" @click="playPauseSpotify">
-        <span class="spotify-icon">🎵</span>
-        <span class="spotify-label">Play/Pause Spotify</span>
-      </button>
+      <div class="spotify-container">
+        <button class="spotify-btn" @click="playPauseSpotify">
+          <span class="spotify-icon">🎵</span>
+          <span class="spotify-label">Play/Pause Spotify</span>
+        </button>
+        <div v-if="nowPlaying" class="now-playing-label">
+          Playing <strong>{{ nowPlaying.track }}</strong> by <strong>{{ nowPlaying.artist }}</strong>
+        </div>
+        <button class="spotify-btn change-music-btn" @click="openSpotify">
+            <span class="spotify-icon">🔀</span>
+            <span class="spotify-label">Change Music</span>
+          </button>
+      </div>
     </div>
     <p class="description">Advanced AI-Powered Focus and Gesture Recognition</p>
     <!-- ...rest of your code... -->
@@ -69,11 +78,12 @@ export default {
     FocusTrackingDemo },
   data() {
     return {
-      checked: false
+      checked: false, // Toggle state for focus mode
+      nowPlaying: null // To store current Spotify track info
     }
-  },setup() {
+  },
+  setup() {
     const activeTab = ref('focus') // Default to focus tracking
-    
     return {
       activeTab
     }
@@ -92,11 +102,24 @@ export default {
       if (window.electronAPI) {
         try {
           await window.electronAPI.spotifyPlayPause();
+          // Fetch track info after play/pause
+          const info = await window.electronAPI.getSpotifyTrack();
+          if (info && info.includes('||')) {
+            const [track, artist] = info.split('||');
+            this.nowPlaying = { track, artist };
+          } else {
+            this.nowPlaying = null;
+          }
         } catch (e) {
           console.error('Spotify AppleScript error:', e);
         }
       }
+    },
+    openSpotify() {
+      if (window.electronAPI) {
+      window.electronAPI.openSpotify();
     }
+}
   }
 }
 </script>
@@ -221,6 +244,50 @@ main {
   margin-top: 2rem;
   margin-bottom: 0;
   padding: 0 2rem;
+}
+
+.spotify-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 180px;
+}
+
+.now-playing-label {
+  margin-top: 0.5rem;
+  text-align: right;
+  font-size: 1rem;
+  color: #1db954;
+  font-weight: 500;
+  width: 100%;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.change-music-btn {
+  margin-top: 0.5rem;
+  background: linear-gradient(90deg, #191414 0%, #1db954 100%);
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 6px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 1px 4px rgba(30,185,84,0.10);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.change-music-btn:hover {
+  background: linear-gradient(90deg, #1db954 0%, #191414 100%);
+  transform: translateY(-1px) scale(1.03);
+}
+
+.change-music-icon {
+  font-size: 1.2rem;
 }
 
 .header-left {

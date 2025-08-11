@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const { execFile } = require('child_process');
+const { execFile, exec } = require('child_process');
 const path = require('path');
 
 function createWindow () {
@@ -39,7 +39,38 @@ function createWindow () {
       else resolve(stdout);
     });
   });
+  });
+
+  ipcMain.handle('open-spotify', async () => {
+  return new Promise((resolve, reject) => {
+    execFile('open', ['-a', 'Spotify'], (error, stdout, stderr) => {
+      if (error) reject(stderr);
+      else resolve(stdout);
+    });
+  });
 });
+
+  ipcMain.handle('spotify-get-track', async () => {
+  const script = `
+    tell application "Spotify"
+      if player state is playing then
+        set trackName to name of current track
+        set artistName to artist of current track
+        return trackName & "||" & artistName
+      else
+        return ""
+      end if
+    end tell
+  `;
+  return new Promise((resolve, reject) => {
+    exec(`osascript -e '${script.replace(/'/g, "\\'")}'`, (error, stdout, stderr) => {
+      if (error) reject(stderr);
+      else resolve(stdout.trim());
+    });
+  });
+  });
+
+
 
   
   const startURL = process.env.NODE_ENV === 'development'

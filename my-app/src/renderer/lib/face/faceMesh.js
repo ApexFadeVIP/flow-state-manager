@@ -76,7 +76,9 @@ export function attachCamera(videoEl, faceMesh, options = {}) {
     width: 640,
     height: 480,
     onFrame: async () => {
-      await faceMesh.send({ image: videoEl })
+      if (videoEl.readyState >= 2) {
+        await faceMesh.send({ image: videoEl })
+      }
     }
   }
 

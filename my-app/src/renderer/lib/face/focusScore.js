@@ -205,16 +205,16 @@ export class FocusScoreCalculator {
     const rightEAR = this.calculateEAR(landmarks, FACE_LANDMARKS.RIGHT_EYE)
     const avgEAR = (leftEAR + rightEAR) / 2
 
+    // Update blink rate (blinks per minute) on every frame instead of only when a blink is detected
+        const elapsedMinutes = (Date.now() - this.startTime) / 60000
+        this.blinkRate = elapsedMinutes > 0 ? this.blinkCount / elapsedMinutes : 0
+
     if (avgEAR < this.config.BLINK_EAR_THRESHOLD) {
       this.consecutiveBlinkFrames++
       if (this.consecutiveBlinkFrames >= this.config.BLINK_CONSECUTIVE_FRAMES && !this.recentBlink) {
         this.blinkCount++
         this.recentBlink = true
         this.lastBlinkTime = Date.now()
-        
-        // Update blink rate (blinks per minute)
-        const elapsedMinutes = (Date.now() - this.startTime) / 60000
-        this.blinkRate = elapsedMinutes > 0 ? this.blinkCount / elapsedMinutes : 0
       }
     } else {
       this.consecutiveBlinkFrames = 0
@@ -246,7 +246,7 @@ export class FocusScoreCalculator {
   /**
    * Detect look-away events
    */
-  detectLookAway() {
+    detectLookAway() {
     const isLookingAway = (
       Math.abs(this.yawEMA) > this.config.YAW_THRESHOLD ||
       Math.abs(this.gazeXEMA) > this.config.GAZE_THRESHOLD ||
@@ -271,12 +271,13 @@ export class FocusScoreCalculator {
       
       if (isRecovered) {
         this.consecutiveLookAwayFrames = 0
-        this.isInLookAwayState = false
+        this.isInLookAwayState = false // Move this line here
       }
     }
 
     return this.isInLookAwayState
   }
+
 
   /**
    * Utility function to clamp values between 0 and 1
@@ -289,76 +290,64 @@ export class FocusScoreCalculator {
    * Calculate the main focus score
    */
   calculateFocusScore(landmarks) {
-    if (!landmarks || landmarks.length === 0) {
-      return {
-        score: this.scoreEMA,
-        metrics: {
-          yaw: this.yawEMA,
-          pitch: this.pitchEMA,
-          gazeX: this.gazeXEMA,
-          ear: 1.0,
-          mar: 0,
-          blinkCount: this.blinkCount,
-          lookAwayCount: this.lookAwayCount,
-          blinkRate: this.blinkRate,
-          isLookingAway: this.isInLookAwayState
-        }
-      }
-    }
-
     this.frameCount++
 
-    // Calculate all metrics
+    // 1. Calculate all raw metrics from landmarks
     const { yaw, pitch } = this.calculateHeadPose(landmarks)
     const { gazeX } = this.calculateGaze(landmarks)
     const ear = this.detectBlinks(landmarks)
     const mar = this.detectMouthOpening(landmarks)
 
-    // Update EMAs
+    // 2. Update smoothed Exponential Moving Averages (EMAs)
     this.updateEMAs(yaw, pitch, gazeX)
 
-    // Detect look-away events
+    // 3. Detect look-away state based on smoothed values
     const isLookingAway = this.detectLookAway()
 
-    // Calculate penalties
-    const penYaw = this.clamp01(Math.abs(this.yawEMA) / 1.0)
-    const penPitch = this.clamp01(Math.abs(this.pitchEMA) / 1.0)
-    const penGaze = this.clamp01(Math.abs(this.gazeXEMA) / 1.0)
+    // 4. Calculate penalties based on smoothed values and events
+    const penYaw = Math.abs(this.yawEMA)
+    const penPitch = Math.abs(this.pitchEMA)
+    const penGaze = Math.abs(this.gazeXEMA)
     const penBlink = this.recentBlink ? this.config.BLINK_PENALTY : 0
     const penMouth = this.recentMouthOpen ? this.config.MOUTH_PENALTY : 0
 
-    // Calculate raw score
-    const rawScore = 1 - (
+    // 5. Calculate the raw score before smoothing
+    let currentScore = 1.0 - (
       this.config.GAZE_WEIGHT * penGaze +
       this.config.YAW_WEIGHT * penYaw +
       this.config.PITCH_WEIGHT * penPitch +
       penBlink +
       penMouth
     )
-
-    // Apply EMA smoothing
-    this.scoreEMA = this.config.EMA_ALPHA_SCORE * this.clamp01(rawScore) + 
-                    (1 - this.config.EMA_ALPHA_SCORE) * this.scoreEMA
-
-    // Gradual recovery when focused
-    if (!isLookingAway && this.scoreEMA < 1.0) {
-      this.scoreEMA = Math.min(1.0, this.scoreEMA + this.config.RECOVERY_RATE)
+    
+    // 6. Apply final smoothing and recovery logic to the score
+    if (!isLookingAway) {
+      // If focused, allow gradual recovery
+      currentScore = Math.max(currentScore, this.scoreEMA + this.config.RECOVERY_RATE)
     }
+    
+    this.scoreEMA = this.config.EMA_ALPHA_SCORE * this.clamp01(currentScore) + 
+                    (1 - this.config.EMA_ALPHA_SCORE) * this.scoreEMA
+    this.scoreEMA = this.clamp01(this.scoreEMA)
 
+    // 7. Return the complete, structured result object
     return {
       score: this.scoreEMA,
+      status: this.getFocusStatus(),
+      events: {
+        blinks: this.blinkCount,
+        blinkRate: this.blinkRate,
+        lookAways: this.lookAwayCount,
+        yawAvg: this.yawEMA,
+        pitchAvg: this.pitchEMA,
+        gazeXAvg: this.gazeXEMA
+      },
       metrics: {
         yaw: this.yawEMA,
         pitch: this.pitchEMA,
-        gazeX: this.gazeXEMA,
+        gaze: this.gazeXEMA,
         ear,
-        mar,
-        blinkCount: this.blinkCount,
-        lookAwayCount: this.lookAwayCount,
-        blinkRate: this.blinkRate,
-        isLookingAway,
-        rawScore: this.clamp01(rawScore),
-        penalties: { penYaw, penPitch, penGaze, penBlink, penMouth }
+        mar
       }
     }
   }
@@ -371,4 +360,4 @@ export class FocusScoreCalculator {
     if (this.scoreEMA < 0.6) return 'distracted'
     return 'focused'
   }
-} 
+}

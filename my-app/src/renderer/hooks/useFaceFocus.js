@@ -48,6 +48,7 @@ export function useFaceFocus() {
   let frameProcessingInterval = null
   let lastFrameTime = 0
   let noFaceFrames = 0
+  let firstLandmarksReceived = false // Add this new flag
   let usingCameraUtil = false
   
   const TARGET_FPS = 15
@@ -85,8 +86,9 @@ export function useFaceFocus() {
     
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       const landmarks = results.multiFaceLandmarks[0]
-      if (noFaceFrames === 0) {
+      if (!firstLandmarksReceived) { // Use the new flag for the check
         console.log('[FaceFocus] First face landmarks received')
+        firstLandmarksReceived = true // Set the flag so it doesn't run again
       }
       noFaceFrames = 0
       
@@ -236,6 +238,7 @@ export function useFaceFocus() {
       calculator = null
       noFaceFrames = 0
       lastFrameTime = 0
+      firstLandmarksReceived = false // Reset the flag when stopping
       usingCameraUtil = false
       videoElRef = null
       
@@ -253,6 +256,7 @@ export function useFaceFocus() {
     if (calculator) {
       calculator.reset()
       focusScore.value = 1.0
+      firstLandmarksReceived = false // Also reset the flag here
       
       // Reset events
       events.lookAways = 0
@@ -373,4 +377,4 @@ export function useFaceFocus() {
     getSessionStats,
     isSupported
   }
-} 
+}

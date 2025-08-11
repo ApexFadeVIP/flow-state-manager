@@ -1,11 +1,18 @@
 <template>
   <div id="app">
-
-    <h1>UltraFlow</h1>
-     <p>Advanced AI-Powered Focus and Gesture Recognition</p>
-    <SimpleToggle v-model="checked" @change="onToggle" />
-    <p>Focus mode is: {{ checked ? 'on' : 'off' }}</p>
-  
+    <div class="header-row">
+      <div class="header-left">
+        <SimpleToggle v-model="checked" @change="onToggle" />
+        <span class="focus-label">{{ checked ? 'Deactivate' : 'Activate' }} Focus Mode</span>
+      </div>
+      <h1 class="header-title">UltraFlow</h1>
+      <button class="spotify-btn" @click="playPauseSpotify">
+        <span class="spotify-icon">🎵</span>
+        <span class="spotify-label">Play/Pause Spotify</span>
+      </button>
+    </div>
+    <p class="description">Advanced AI-Powered Focus and Gesture Recognition</p>
+    <!-- ...rest of your code... -->
     <main>
       <!-- Navigation Tabs -->
       <div class="tab-navigation">
@@ -78,6 +85,15 @@ export default {
           await window.electronAPI.toggleFocus(this.checked);
         } catch (e) {
           console.error('AppleScript error:', e);
+        }
+      }
+    },
+    async playPauseSpotify() {
+      if (window.electronAPI) {
+        try {
+          await window.electronAPI.spotifyPlayPause();
+        } catch (e) {
+          console.error('Spotify AppleScript error:', e);
         }
       }
     }
@@ -196,6 +212,72 @@ main {
 .panel-header p {
   font-size: 1rem;
   color: #64748b;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2rem;
+  margin-bottom: 0;
+  padding: 0 2rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-title {
+  flex: 1;
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin: 0;
+
+}
+
+.description {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #4b5563;
+  margin-top: 0.5rem;
+}
+
+.spotify-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(90deg, #1db954 0%, #191414 100%);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(30,185,84,0.15);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.spotify-btn:hover {
+  background: linear-gradient(90deg, #1ed760 0%, #191414 100%);
+  transform: translateY(-2px) scale(1.04);
+}
+
+.spotify-icon {
+  font-size: 1.3rem;
+}
+
+.spotify-label {
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.focus-label {
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 /* Responsive design */

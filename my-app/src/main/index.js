@@ -31,6 +31,16 @@ function createWindow () {
     });
   });
 
+  ipcMain.handle('spotify-playpause', async () => {
+  const scriptPath = path.join(__dirname, 'applescripts', 'PlayPauseSpotify.scpt');
+  return new Promise((resolve, reject) => {
+    execFile('osascript', [scriptPath], (error, stdout, stderr) => {
+      if (error) reject(stderr);
+      else resolve(stdout);
+    });
+  });
+});
+
   
   const startURL = process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'

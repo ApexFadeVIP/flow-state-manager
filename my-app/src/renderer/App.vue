@@ -12,6 +12,7 @@
           <span class="spotify-label">Play/Pause Spotify</span>
         </button>
         <div v-if="nowPlaying" class="now-playing-label">
+          <span class="music-animate">🎶</span>
           Playing <strong>{{ nowPlaying.track }}</strong> by <strong>{{ nowPlaying.artist }}</strong>
         </div>
         <button class="spotify-btn change-music-btn" @click="openSpotify">
@@ -73,19 +74,24 @@ import FocusTrackingDemo from './components/Focus/FocusTrackingDemo.vue'
 
 export default {
   name: 'App',
-  components: { SimpleToggle,
-    GestureRecognition,
-    FocusTrackingDemo },
+  components: { SimpleToggle, GestureRecognition, FocusTrackingDemo },
   data() {
     return {
-      checked: false, // Toggle state for focus mode
-      nowPlaying: null // To store current Spotify track info
+      checked: false,
+      nowPlaying: null,
+      spotifyPollInterval: null // Add this
     }
   },
   setup() {
-    const activeTab = ref('focus') // Default to focus tracking
-    return {
-      activeTab
+    const activeTab = ref('focus')
+    return { activeTab }
+  },
+  mounted() {
+    this.startSpotifyPolling();
+  },
+  beforeUnmount() {
+    if (this.spotifyPollInterval) {
+      clearInterval(this.spotifyPollInterval);
     }
   },
   methods: {
@@ -102,7 +108,6 @@ export default {
       if (window.electronAPI) {
         try {
           await window.electronAPI.spotifyPlayPause();
-          // Fetch track info after play/pause
           const info = await window.electronAPI.getSpotifyTrack();
           if (info && info.includes('||')) {
             const [track, artist] = info.split('||');
@@ -115,11 +120,31 @@ export default {
         }
       }
     },
-    openSpotify() {
+    async openSpotify() {
       if (window.electronAPI) {
-      window.electronAPI.openSpotify();
+        await window.electronAPI.openSpotify();
+        // You can keep your polling logic here if you want, but the global polling will handle updates
+      }
+    },
+    startSpotifyPolling() {
+      this.spotifyPollInterval = setInterval(async () => {
+        if (window.electronAPI) {
+          const info = await window.electronAPI.getSpotifyTrack();
+          if (info && info.includes('||')) {
+            const [track, artist] = info.split('||');
+            if (
+              !this.nowPlaying ||
+              this.nowPlaying.track !== track ||
+              this.nowPlaying.artist !== artist
+            ) {
+              this.nowPlaying = { track, artist };
+            }
+          } else {
+            this.nowPlaying = null;
+          }
+        }
+      }, 1000); // Poll every 3 seconds
     }
-}
   }
 }
 </script>
@@ -345,6 +370,22 @@ main {
 .focus-label {
   font-size: 1rem;
   font-weight: 500;
+}
+
+.music-animate {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 1.3rem;
+  animation: music-move 1s infinite linear;
+}
+
+@keyframes music-move {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  20%  { transform: translateY(-3px) scale(1.1); opacity: 0.8; }
+  40%  { transform: translateY(-6px) scale(1.2); opacity: 0.7; }
+  60%  { transform: translateY(-3px) scale(1.1); opacity: 0.8; }
+  80%  { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 /* Responsive design */

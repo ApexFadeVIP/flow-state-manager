@@ -333,24 +333,23 @@ export class FocusScoreCalculator {
     // 7. Return the complete, structured result object
     return {
       score: this.scoreEMA,
-      status: this.getFocusStatus(),
-      events: {
-        blinks: this.blinkCount,
-        blinkRate: this.blinkRate,
-        lookAways: this.lookAwayCount,
-        yawAvg: this.yawEMA,
-        pitchAvg: this.pitchEMA,
-        gazeXAvg: this.gazeXEMA
-      },
       metrics: {
         yaw: this.yawEMA,
         pitch: this.pitchEMA,
-        gaze: this.gazeXEMA,
+        gazeX: this.gazeXEMA,
         ear,
-        mar
+        mar,
+        blinkCount: this.blinkCount,
+        lookAwayCount: this.lookAwayCount,
+        blinkRate: this.blinkRate,
+        isLookingAway,
+        rawScore: this.clamp01(rawScore),
+        penalties: { penYaw, penPitch, penGaze, penBlink, penMouth }
       }
     }
-  }
+  
+    }
+  
 
   /**
    * Get current focus status

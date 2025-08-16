@@ -53,85 +53,65 @@ export default {
     autoStart: {
       type: Boolean,
       default: true
-    },
-    cameraConstraints: {
-      type: Object,
-      default: () => ({})
     }
   },
   emits: ['started', 'stopped', 'error'],
   setup(props, { emit }) {
     const videoRef = ref(null)
     const error = ref(null)
-    const isInitializing = ref(false)
     
-    // Inject focus context
+    // Inject the simplified focus context
     const focus = inject('focus')
     
     if (!focus) {
-      console.error('CameraFeed must be used within a FocusProvider')
+      // This error is a safeguard for development
+      error.value = 'CameraFeed must be used within a SimpleFocusProvider'
+      console.error(error.value)
     }
     
-    // Computed properties
+    // Computed properties to drive the UI from the provider's state
     const statusClass = computed(() => {
       if (error.value) return 'status-error'
-      if (isInitializing.value) return 'status-initializing'
-      if (focus?.isTracking) return 'status-active'
+      if (focus?.status.value === 'initializing') return 'status-initializing'
+      if (focus?.isTracking.value) return 'status-active'
       return 'status-inactive'
     })
     
     const statusText = computed(() => {
       if (error.value) return 'Camera Error'
-      if (isInitializing.value) return 'Initializing...'
-      if (focus?.isTracking) return 'Face Tracking Active'
-      return 'Camera Inactive'
+      if (focus?.status.value === 'initializing') return 'Initializing...'
+      if (focus?.status.value === 'no-face') return 'No Face Detected'
+      if (focus?.isTracking.value) return 'Tracking Active'
+      return 'Inactive'
     })
     
     /**
-     * Start camera and face tracking
+     * Start camera and face tracking using the provider's method
      */
     const startCamera = async () => {
-      if (!focus || !videoRef.value) {
-        console.error('Focus context or video element not available')
-        return
-      }
-      
+      if (!focus || !videoRef.value) return
+      if (focus.isTracking.value) return
+
       try {
         error.value = null
-        isInitializing.value = true
-        
-        console.log('Starting camera feed...')
-        
-        await focus.start(videoRef.value, {
-          width: props.width,
-          height: props.height,
-          cameraConstraints: props.cameraConstraints
-        })
-        
+        await focus.start(videoRef.value)
         emit('started')
-        console.log('Camera feed started successfully')
-        
       } catch (err) {
         console.error('Error starting camera:', err)
         error.value = err.message || 'Failed to start camera'
         emit('error', err)
-      } finally {
-        isInitializing.value = false
       }
     }
     
     /**
-     * Stop camera and face tracking
+     * Stop camera and face tracking using the provider's method
      */
     const stopCamera = () => {
-      if (!focus) return
+      if (!focus || !focus.isTracking.value) return
       
       try {
-        console.log('Stopping camera feed...')
         focus.stop()
-        error.value = null
         emit('stopped')
-        console.log('Camera feed stopped')
       } catch (err) {
         console.error('Error stopping camera:', err)
         error.value = err.message || 'Failed to stop camera'
@@ -139,62 +119,34 @@ export default {
       }
     }
     
-    /**
-     * Check camera permissions
-     */
-    const checkCameraPermissions = async () => {
-      try {
-        const permissions = await navigator.permissions.query({ name: 'camera' })
-        return permissions.state === 'granted'
-      } catch (err) {
-        console.warn('Could not check camera permissions:', err)
-        return false
-      }
-    }
-    
-    // Watch for changes in autoStart prop
+    // Watch for changes in autoStart prop to dynamically start/stop
     watch(() => props.autoStart, (newValue) => {
-      if (newValue && !focus?.isTracking && videoRef.value) {
+      if (newValue && !focus?.isTracking.value) {
         startCamera()
-      } else if (!newValue && focus?.isTracking) {
+      } else if (!newValue && focus?.isTracking.value) {
         stopCamera()
       }
     })
     
-    onMounted(async () => {
-      if (!focus) {
-        error.value = 'Focus context not available'
-        return
-      }
-      
-      // Check if face tracking is supported
-      if (!focus.isSupported()) {
-        error.value = 'Face tracking is not supported in this browser'
-        return
-      }
-      
-      // Start automatically if enabled
+    onMounted(() => {
       if (props.autoStart && videoRef.value) {
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-          startCamera()
-        }, 100)
+        startCamera()
       }
     })
     
     onUnmounted(() => {
+      // Ensure camera is stopped when component is removed
       stopCamera()
     })
     
     return {
       videoRef,
       error,
-      isInitializing,
       statusClass,
       statusText,
+      // Expose methods for parent components if needed
       startCamera,
-      stopCamera,
-      checkCameraPermissions
+      stopCamera
     }
   }
 }
@@ -204,6 +156,9 @@ export default {
 .camera-feed {
   position: relative;
   display: inline-block;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .camera-feed.hidden .camera-video {
@@ -217,8 +172,6 @@ export default {
 
 .camera-video {
   display: block;
-  border-radius: 8px;
-  background-color: #000;
   max-width: 100%;
   height: auto;
 }
@@ -294,17 +247,4 @@ export default {
     opacity: 0.5;
   }
 }
-
-/* Responsive styles */
-@media (max-width: 768px) {
-  .camera-video {
-    max-width: 100%;
-    height: auto;
-  }
-  
-  .status-indicator,
-  .error-message {
-    font-size: 11px;
-  }
-}
-</style> 
+</style>

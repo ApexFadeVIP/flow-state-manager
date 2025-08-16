@@ -2,69 +2,28 @@
   <div id="app">
     <header>
       <h1>Flow State Manager</h1>
-      <p>Advanced AI-Powered Focus and Gesture Recognition</p>
+      <p>Unified AI-Powered Focus and Gesture Recognition</p>
     </header>
     
     <main>
-      <!-- Navigation Tabs -->
-      <div class="tab-navigation">
-        <button 
-          class="tab-button" 
-          :class="{ active: activeTab === 'gesture' }"
-          @click="activeTab = 'gesture'"
-        >
-          🤲 Gesture Recognition
-        </button>
-        <button 
-          class="tab-button" 
-          :class="{ active: activeTab === 'focus' }"
-          @click="activeTab = 'focus'"
-        >
-          👁️ Focus Tracking
-        </button>
-      </div>
-      
-      <!-- Tab Content -->
-      <div class="tab-content">
-        <!-- Gesture Recognition Tab -->
-        <div v-if="activeTab === 'gesture'" class="tab-panel">
-          <div class="panel-header">
-            <h2>Hand Gesture Recognition</h2>
-            <p>Real-time hand gesture detection using MediaPipe</p>
-          </div>
-          <GestureRecognition />
+      <div class="unified-content">
+        <div class="panel-header">
+          <h2>Unified Vision Tracking</h2>
+          <p>Real-time gesture recognition and focus tracking on a single camera feed</p>
         </div>
-        
-        <!-- Focus Tracking Tab -->
-        <div v-if="activeTab === 'focus'" class="tab-panel">
-          <div class="panel-header">
-            <h2>Face Focus Tracking</h2>
-            <p>Monitor attention and focus levels through facial analysis</p>
-          </div>
-          <FocusTrackingDemo />
-        </div>
+        <UnifiedVisionTracker />
       </div>
     </main>
   </div>
 </template>
 
 <script>
-import { ref } from 'vue'
-import GestureRecognition from './components/GestureRecognition.vue'
-import FocusTrackingDemo from './components/Focus/FocusTrackingDemo.vue'
+import UnifiedVisionTracker from './components/UnifiedVisionTracker.vue'
 
 export default {
   name: 'App',
   components: {
-    GestureRecognition,
-    FocusTrackingDemo
-  },
-  setup() {
-    const activeTab = ref('focus') // Default to focus tracking
-    
-    return {
-      activeTab
-    }
+    UnifiedVisionTracker
   }
 }
 </script>
@@ -111,55 +70,11 @@ main {
   margin: 0 auto;
 }
 
-.tab-navigation {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 2rem;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.tab-button {
-  padding: 12px 24px;
-  border: none;
-  background: none;
-  color: #64748b;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 8px 8px 0 0;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.tab-button:hover {
-  background-color: #f1f5f9;
-  color: #475569;
-}
-
-.tab-button.active {
-  background-color: white;
-  color: #1e293b;
-  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-}
-
-.tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.tab-content {
+.unified-content {
   background: white;
-  border-radius: 0 8px 8px 8px;
+  border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-}
-
-.tab-panel {
   padding: 2rem;
 }
 
@@ -196,25 +111,7 @@ main {
     padding: 1rem;
   }
   
-  .tab-navigation {
-    flex-direction: column;
-    gap: 2px;
-  }
-  
-  .tab-button {
-    border-radius: 8px;
-    text-align: left;
-  }
-  
-  .tab-button.active::after {
-    display: none;
-  }
-  
-  .tab-content {
-    border-radius: 8px;
-  }
-  
-  .tab-panel {
+  .unified-content {
     padding: 1rem;
   }
   

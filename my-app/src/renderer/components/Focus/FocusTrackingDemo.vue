@@ -1,5 +1,5 @@
 <template>
-  <FocusLogicProvider>
+  <FocusProvider>
     <div class="focus-tracking-demo">
       <div class="layout">
         <div class="left">
@@ -10,17 +10,17 @@
         </div>
       </div>
     </div>
-  </FocusLogicProvider>
+  </FocusProvider>
 </template>
 
 <script>
-import FocusLogicProvider from '../../context/FocusLogicProvider.vue'
+import FocusProvider from '../../context/FocusProvider.vue'
 import CameraFeed from './CameraFeed.vue'
 import FocusStats from './FocusStats.vue'
 
 export default {
   name: 'FocusTrackingDemo',
-  components: { FocusLogicProvider, CameraFeed, FocusStats }
+  components: { FocusProvider, CameraFeed, FocusStats }
 }
 </script>
 

@@ -5,8 +5,8 @@ import { FACE_LANDMARKS, calculateDistance } from './faceMesh.js'
  */
 export const FOCUS_CONFIG = {
   // Smoothing factors for exponential moving averages
-  EMA_ALPHA_POSE: 0.1,      // For yaw/pitch/gaze
-  EMA_ALPHA_SCORE: 0.05,     // For final score
+  EMA_ALPHA_POSE: 0.2,      // For yaw/pitch/gaze
+  EMA_ALPHA_SCORE: 0.1,     // For final score
   
   // Threshold tuning constants
   K_YAW: 2.5,               // Yaw sensitivity multiplier
@@ -14,16 +14,16 @@ export const FOCUS_CONFIG = {
   
   // Detection thresholds
   BLINK_EAR_THRESHOLD: 0.20,
-  BLINK_CONSECUTIVE_FRAMES: 1,
+  BLINK_CONSECUTIVE_FRAMES: 3,
   MOUTH_MAR_THRESHOLD: 0.6,
   MOUTH_CONSECUTIVE_FRAMES: 10,
   LOOK_AWAY_FRAMES: 15,
   
   // Look-away thresholds
-  YAW_THRESHOLD: 0.1,
-  PITCH_THRESHOLD: 0.1,
-  GAZE_THRESHOLD: 0.1,
-  RECOVERY_THRESHOLD: 0.1,
+  YAW_THRESHOLD: 0.6,
+  PITCH_THRESHOLD: 0.6,
+  GAZE_THRESHOLD: 0.55,
+  RECOVERY_THRESHOLD: 0.4,
   
   // Score penalties
   GAZE_WEIGHT: 0.45,

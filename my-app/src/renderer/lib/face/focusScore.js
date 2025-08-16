@@ -343,7 +343,6 @@ export class FocusScoreCalculator {
         lookAwayCount: this.lookAwayCount,
         blinkRate: this.blinkRate,
         isLookingAway,
-        rawScore: this.clamp01(rawScore),
         penalties: { penYaw, penPitch, penGaze, penBlink, penMouth }
       }
     }

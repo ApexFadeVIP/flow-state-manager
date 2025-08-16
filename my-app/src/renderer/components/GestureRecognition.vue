@@ -42,7 +42,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, defineEmits } from 'vue'
 
 export default {
   name: 'GestureRecognition',
@@ -55,6 +55,7 @@ export default {
     const currentGesture = ref('None')
     const fps = ref(0)
     const gestureHistory = ref([])
+    const emit = defineEmits(['gesture']);
     
     let stream = null
     let recognizer = null
@@ -219,6 +220,13 @@ export default {
           } else {
             currentGesture.value = 'None'
           }
+
+          if (gesture.categoryName === 'Open palm') {
+          // Emit thumbs up event
+          // For Options API: this.$emit('gesture', 'thumbs_up')
+          // For Composition API (setup): use `emit` from setup
+            emit('gesture', 'Open palm');
+          }
           
           // Draw landmarks if available
           if (results.landmarks && canvasEl.value) {
@@ -296,6 +304,8 @@ export default {
       startCamera,
       stopCamera
     }
+  }, methods: {
+    
   }
 }
 </script>

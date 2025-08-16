@@ -50,7 +50,7 @@
             <h2>Hand Gesture Recognition</h2>
             <p>Real-time hand gesture detection using MediaPipe</p>
           </div>
-          <GestureRecognition />
+          <GestureRecognition @gesture="handleGesture" />
         </div>
         
         <!-- Focus Tracking Tab -->
@@ -144,6 +144,13 @@ export default {
           }
         }
       }, 1000); // Poll every 3 seconds
+    },
+
+    async handleGesture(gesture) {
+      if (gesture === 'Open palm' && !this.checked) {
+        this.checked = true;
+        await this.onToggle();
+      }
     }
   }
 }

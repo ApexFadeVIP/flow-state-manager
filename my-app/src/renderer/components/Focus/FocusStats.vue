@@ -3,7 +3,7 @@
     <div class="panel">
       <h3>Status</h3>
       <p><strong>Tracking:</strong> {{ focus?.isTracking ? 'Yes' : 'No' }}</p>
-      <p><strong>State:</strong> {{ focus?.status }}</p>
+      <p><strong>State:</strong> {{ focus?.status.value }}</p>
       <p><strong>Score:</strong> {{ focus?.scorePercentage }}%</p>
     </div>
     <div class="panel">

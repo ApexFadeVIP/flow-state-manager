@@ -221,7 +221,7 @@ export default {
             currentGesture.value = 'None'
           }
 
-          if (gesture.categoryName === 'Open palm') {
+          if (currentGesture.value === 'Open palm') {
           // Emit thumbs up event
           // For Options API: this.$emit('gesture', 'thumbs_up')
           // For Composition API (setup): use `emit` from setup

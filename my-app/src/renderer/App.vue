@@ -34,7 +34,9 @@
           <h2>Unified Vision Tracking</h2>
           <p>Real-time gesture recognition and focus tracking on a single camera feed</p>
         </div>
-        <UnifiedVisionTracker />
+        <GestureRecognition @gesture = "handleGesture"/>
+
+        
       </div>
     </main>
   </div>
@@ -42,13 +44,16 @@
 
 <script>
 import SimpleToggle from "../main/components/ToggleSwitch.vue"
+import GestureRecognition from "./components/GestureRecognition.vue"
 import UnifiedVisionTracker from './components/UnifiedVisionTracker.vue'
+import { ref } from 'vue'
 
 export default {
   name: 'App',
-  components: { SimpleToggle, GestureRecognition, FocusTrackingDemo, UnifiedVisionTracker },
+  components: { SimpleToggle, UnifiedVisionTracker, GestureRecognition },
   data() {
-    return {
+    return {    
+    // When gesture detected:
       checked: false,
       nowPlaying: null,
       spotifyPollInterval: null // Add this
@@ -119,11 +124,14 @@ export default {
     },
 
     async handleGesture(gesture) {
+      console.log('Gesture received:', gesture); // Add this for debugging
       if (gesture === 'Open palm' && !this.checked) {
+        console.log("Gesture 'Open palm' detected, toggling focus mode");
         this.checked = true;
         await this.onToggle();
       }
     }
+
   }
 }
 </script>

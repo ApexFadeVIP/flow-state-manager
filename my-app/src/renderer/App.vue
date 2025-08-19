@@ -126,11 +126,11 @@ export default {
 
     async handleGesture(gesture) {
       // Only toggle when gesture changes from not-palm to palm
-      if (gesture === 'Open_Palm' && this.lastGesture !== 'Open_Palm') {
+      if (gesture === 'Pointing_Up' && this.lastGesture !== 'Pointing_Up') {
         this.checked = !this.checked;
         await this.onToggle();
         console.log(`Focus mode is now ${this.checked ? 'ON' : 'OFF'}`);
-      }else if(gesture == 'Closed_Fist' && this.lastGesture !== 'Closed_Fist'){
+      }else if(gesture == 'Thumb_Up' && this.lastGesture !== 'Thumb_Up'){
         this.nowPlaying = !this.nowPlaying;
         await this.playPauseSpotify();
         console.log(`Music is ${this.nowPlaying ? 'PLAYING' : 'STOPPED'} now`);

@@ -226,15 +226,15 @@ export default {
 
 if (results.gestures && results.gestures.length > 0) {
   const gesture = results.gestures[0][0];
-  if (gesture.categoryName === 'Open_Palm') {
-    if (lastGestureEmitted !== 'Open_Palm') {
-      emit('gesture', 'Open_Palm');
-      lastGestureEmitted = 'Open_Palm';
+  if (gesture.categoryName === 'Pointing_Up') {
+    if (lastGestureEmitted !== 'Pointing_Up') {
+      emit('gesture', 'Pointing_Up');
+      lastGestureEmitted = 'Pointing_Up';
     }
-  }else if (gesture.categoryName == 'Closed_Fist') {
-    if (lastGestureEmitted !== 'Closed_Fist') {
-      emit('gesture', 'Closed_Fist');
-      lastGestureEmitted = 'Closed_Fist';
+  }else if (gesture.categoryName == 'Thumb_Up') {
+    if (lastGestureEmitted !== 'Thumb_Up') {
+      emit('gesture', 'Thumb_Up');
+      lastGestureEmitted = 'Thumb_Up';
     }
 
   }else if(gesture.categoryName == 'Victory') {

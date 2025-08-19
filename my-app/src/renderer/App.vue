@@ -5,7 +5,6 @@
         <SimpleToggle v-model="checked" @change="onToggle" />
         <span class="focus-label">{{ checked ? 'Deactivate' : 'Activate' }} Focus Mode</span>
       </div>
-      <h1 class="header-title">UltraFlow</h1>
       <div class="spotify-container">
         <button class="spotify-btn" @click="playPauseSpotify">
           <span class="spotify-icon">🎵</span>
@@ -21,22 +20,15 @@
           </button>
       </div>
     </div>
-    <p class="description">Advanced AI-Powered Focus and Gesture Recognition</p>
     <!-- ...rest of your code... -->
     <header>
-      <h1>Flow State Manager</h1>
+      <h1>Ultra Flow</h1>
       <p>Unified AI-Powered Focus and Gesture Recognition</p>
     </header>
     
     <main>
       <div class="unified-content">
-        <div class="panel-header">
-          <h2>Unified Vision Tracking</h2>
-          <p>Real-time gesture recognition and focus tracking on a single camera feed</p>
-        </div>
         <GestureRecognition @gesture = "handleGesture"/>
-
-        
       </div>
     </main>
   </div>
@@ -357,6 +349,7 @@ main {
   
   .unified-content {
     padding: 1rem;
+    justify-content: center;
   }
   
   .panel-header h2 {

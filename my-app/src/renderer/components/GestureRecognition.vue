@@ -29,15 +29,6 @@
       <p>Current Gesture: {{ currentGesture }}</p>
       <p>FPS: {{ fps }}</p>
     </div>
-    
-    <div class="gesture-history">
-      <h3>Recent Gestures:</h3>
-      <ul>
-        <li v-for="(gesture, index) in gestureHistory" :key="index">
-          {{ gesture.name }} ({{ gesture.confidence.toFixed(2) }}) - {{ gesture.timestamp }}
-        </li>
-      </ul>
-    </div>
   </div>
 </template>
 

@@ -130,6 +130,14 @@ export default {
         this.checked = !this.checked;
         await this.onToggle();
         console.log(`Focus mode is now ${this.checked ? 'ON' : 'OFF'}`);
+      }else if(gesture == 'Closed_Fist' && this.lastGesture !== 'Closed_Fist'){
+        this.nowPlaying = !this.nowPlaying;
+        await this.playPauseSpotify();
+        console.log(`Music is ${this.nowPlaying ? 'PLAYING' : 'STOPPED'} now`);
+      }else if(gesture == 'Victory' && this.lastGesture !== 'Victory'){
+        this.nowPlaying = !this.nowPlaying;
+        await this.openSpotify();
+        console.log(`Song has CHANGED now`);
       }
       this.lastGesture = gesture;
     }

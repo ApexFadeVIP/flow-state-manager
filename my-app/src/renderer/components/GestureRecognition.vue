@@ -231,7 +231,19 @@ if (results.gestures && results.gestures.length > 0) {
       emit('gesture', 'Open_Palm');
       lastGestureEmitted = 'Open_Palm';
     }
-  } else {
+  }else if (gesture.categoryName == 'Closed_Fist') {
+    if (lastGestureEmitted !== 'Closed_Fist') {
+      emit('gesture', 'Closed_Fist');
+      lastGestureEmitted = 'Closed_Fist';
+    }
+
+  }else if(gesture.categoryName == 'Victory') {
+    if (lastGestureEmitted !== 'Victory') {
+      emit('gesture', 'Victory');
+      lastGestureEmitted = 'Victory';
+    }
+
+  }else {
     if (lastGestureEmitted !== 'None') {
       emit('gesture', 'None');
       lastGestureEmitted = 'None';

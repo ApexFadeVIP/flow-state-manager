@@ -5,6 +5,7 @@
         <SimpleToggle v-model="checked" @change="onToggle" />
         <span class="focus-label">{{ checked ? 'Deactivate' : 'Activate' }} Focus Mode</span>
       </div>
+      <h1 class="header-title">UltraFlow</h1>
       <div class="spotify-container">
         <button class="spotify-btn" @click="playPauseSpotify">
           <span class="spotify-icon">🎵</span>
@@ -20,15 +21,34 @@
           </button>
       </div>
     </div>
+    <p class="description">Advanced AI-Powered Focus and Gesture Recognition</p>
     <!-- ...rest of your code... -->
     <header>
-      <h1>Ultra Flow</h1>
+      <h1>Flow State Manager</h1>
       <p>Unified AI-Powered Focus and Gesture Recognition</p>
     </header>
     
     <main>
-      <div class="unified-content">
-        <GestureRecognition @gesture = "handleGesture"/>
+      <div class="content-grid">
+        <div class="vision-panel">
+          <div class="panel-header">
+            <h2>Unified Vision Tracking</h2>
+            <p>Real-time gesture recognition and focus tracking on a single camera feed</p>
+          </div>
+          <GestureRecognition @gesture="handleGesture"/>
+        </div>
+        
+        <div class="timer-panel">
+          <PomodoroTimer 
+            :current-gesture="currentGesture"
+            :focus-score="focusScore"
+            @timer-started="onTimerStarted"
+            @timer-paused="onTimerPaused"
+            @timer-completed="onTimerCompleted"
+            @session-changed="onSessionChanged"
+            @focus-mode-toggle="onFocusModeToggle"
+          />
+        </div>
       </div>
     </main>
   </div>
@@ -38,11 +58,12 @@
 import SimpleToggle from "../main/components/ToggleSwitch.vue"
 import GestureRecognition from "./components/GestureRecognition.vue"
 import UnifiedVisionTracker from './components/UnifiedVisionTracker.vue'
+import PomodoroTimer from './components/PomodoroTimer.vue'
 import { ref } from 'vue'
 
 export default {
   name: 'App',
-  components: { SimpleToggle, UnifiedVisionTracker, GestureRecognition },
+  components: { SimpleToggle, UnifiedVisionTracker, GestureRecognition, PomodoroTimer },
   data() {
     return {    
     // When gesture detected:
@@ -50,6 +71,8 @@ export default {
       nowPlaying: null,
       spotifyPollInterval: null, // Add this
       lastGesture: null,
+      currentGesture: 'None',
+      focusScore: 100,
     }
   },
   setup() {
@@ -117,6 +140,9 @@ export default {
     },
 
     async handleGesture(gesture) {
+      // Update current gesture for timer component
+      this.currentGesture = gesture;
+      
       // Only toggle when gesture changes from not-palm to palm
       if (gesture === 'Pointing_Up' && this.lastGesture !== 'Pointing_Up') {
         this.checked = !this.checked;
@@ -132,6 +158,33 @@ export default {
         console.log(`Song has CHANGED now`);
       }
       this.lastGesture = gesture;
+    },
+
+    // Timer event handlers
+    onTimerStarted(data) {
+      console.log('Timer started:', data);
+    },
+
+    onTimerPaused(data) {
+      console.log('Timer paused:', data);
+    },
+
+    onTimerCompleted(data) {
+      console.log('Timer completed:', data);
+      // Show notification or celebratory message
+    },
+
+    onSessionChanged(data) {
+      console.log('Session changed:', data);
+    },
+
+    async onFocusModeToggle(shouldEnable) {
+      // Sync timer's focus mode with app's focus mode
+      if (shouldEnable !== this.checked) {
+        this.checked = shouldEnable;
+        await this.onToggle();
+        console.log(`Focus mode synced with timer: ${this.checked ? 'ON' : 'OFF'}`);
+      }
     }
 
     }
@@ -180,12 +233,24 @@ main {
   margin: 0 auto;
 }
 
-.unified-content {
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.vision-panel {
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   padding: 2rem;
+}
+
+.timer-panel {
+  position: sticky;
+  top: 2rem;
 }
 
 .panel-header {
@@ -334,6 +399,18 @@ main {
 }
 
 /* Responsive design */
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .timer-panel {
+    position: static;
+    top: auto;
+  }
+}
+
 @media (max-width: 768px) {
   header {
     padding: 1.5rem;
@@ -343,13 +420,23 @@ main {
     font-size: 2rem;
   }
   
+  .header-row {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .spotify-container {
+    min-width: auto;
+    align-items: center;
+  }
+  
   main {
     padding: 1rem;
   }
   
-  .unified-content {
+  .vision-panel {
     padding: 1rem;
-    justify-content: center;
   }
   
   .panel-header h2 {

@@ -4,9 +4,20 @@ import { FACE_LANDMARKS, calculateDistance } from './faceMesh.js'
  * Configuration constants for focus score calculation
  */
 export const FOCUS_CONFIG = {
+
+  // --- NEW: Score Weights & Penalties ---
+  GAZE_EFFECT: 0.5,         // How much gaze direction affects the focus score
+  YAW_EFFECT: 0.3,          // How much head yaw affects the focus score
+  PITCH_EFFECT: 0.2,        // How much head pitch affects the focus score
+
   // Smoothing factors for exponential moving averages
   EMA_ALPHA_POSE: 0.1,      // For yaw/pitch/gaze
   EMA_ALPHA_SCORE: 0.05,     // For final score
+
+  
+   // --- NEW: Score Smoothing & Recovery ---
+  EMA_SMOOTHING_SCORE: 0.05,    // How quickly the score updates (lower is smoother)
+  RECOVERY_SMOOTHING_RATE: 0.005,     // How quickly the score recovers when focused (per frame)
   
   // Threshold tuning constants
   K_YAW: 2.5,               // Yaw sensitivity multiplier
@@ -20,7 +31,7 @@ export const FOCUS_CONFIG = {
   LOOK_AWAY_FRAMES: 15,
   
   // Look-away thresholds
-  YAW_THRESHOLD: 0.1,
+  YAW_THRESHOLD: 0.3,
   PITCH_THRESHOLD: 0.1,
   GAZE_THRESHOLD: 0.1,
   RECOVERY_THRESHOLD: 0.1,

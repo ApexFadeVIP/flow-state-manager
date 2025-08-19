@@ -1,44 +1,39 @@
 <template>
   <div id="app">
-    <div class="header-row">
-      <div class="header-left">
-        <SimpleToggle v-model="checked" @change="onToggle" />
-        <span class="focus-label">{{ checked ? 'Deactivate' : 'Activate' }} Focus Mode</span>
-      </div>
-      <h1 class="header-title">UltraFlow</h1>
-      <div class="spotify-container">
-        <button class="spotify-btn" @click="playPauseSpotify">
-          <span class="spotify-icon">🎵</span>
-          <span class="spotify-label">Play/Pause Spotify</span>
-        </button>
-        <div v-if="nowPlaying" class="now-playing-label">
-          <span class="music-animate">🎶</span>
-          Playing <strong>{{ nowPlaying.track }}</strong> by <strong>{{ nowPlaying.artist }}</strong>
-        </div>
-        <button class="spotify-btn change-music-btn" @click="openSpotify">
-            <span class="spotify-icon">🔀</span>
-            <span class="spotify-label">Change Music</span>
-          </button>
-      </div>
-    </div>
-    <p class="description">Advanced AI-Powered Focus and Gesture Recognition</p>
-    <!-- ...rest of your code... -->
-    <header>
-      <h1>Flow State Manager</h1>
-      <p>Unified AI-Powered Focus and Gesture Recognition</p>
-    </header>
-    
-    <main>
-      <div class="content-grid">
-        <div class="vision-panel">
-          <div class="panel-header">
-            <h2>Unified Vision Tracking</h2>
-            <p>Real-time gesture recognition and focus tracking on a single camera feed</p>
-          </div>
-          <GestureRecognition @gesture="handleGesture"/>
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand">
+          <h1 class="brand-title">UltraFlow</h1>
+          <p class="brand-subtitle">AI-Powered Focus & Productivity</p>
         </div>
         
-        <div class="timer-panel">
+        <div class="header-controls">
+          <div class="control-group">
+            <SimpleToggle v-model="checked" @change="onToggle" />
+            <span class="control-label">Focus Mode</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="workspace">
+        <!-- Vision Tracking Section -->
+        <section class="tracking-section">
+          <div class="section-header">
+            <h2 class="section-title">Vision Tracking</h2>
+            <p class="section-subtitle">Real-time gesture recognition and focus monitoring</p>
+          </div>
+          
+          <div class="tracking-content">
+            <GestureRecognition @gesture="handleGesture"/>
+          </div>
+        </section>
+
+        <!-- Timer Section -->
+        <section class="timer-section">
           <PomodoroTimer 
             :current-gesture="currentGesture"
             :focus-score="focusScore"
@@ -48,7 +43,43 @@
             @session-changed="onSessionChanged"
             @focus-mode-toggle="onFocusModeToggle"
           />
-        </div>
+        </section>
+
+        <!-- Media Controls Section -->
+        <section class="media-section">
+          <div class="section-header">
+            <h2 class="section-title">Media Controls</h2>
+            <p class="section-subtitle">Gesture-controlled music playback</p>
+          </div>
+          
+          <div class="media-controls">
+            <button class="media-btn primary" @click="playPauseSpotify">
+              <svg class="media-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              <span class="media-label">{{ nowPlaying ? 'Pause' : 'Play' }}</span>
+            </button>
+            
+            <button class="media-btn secondary" @click="openSpotify">
+              <svg class="media-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+              </svg>
+              <span class="media-label">Next Track</span>
+            </button>
+          </div>
+          
+          <div v-if="nowPlaying" class="now-playing">
+            <div class="track-info">
+              <div class="track-title">{{ nowPlaying.track }}</div>
+              <div class="track-artist">{{ nowPlaying.artist }}</div>
+            </div>
+            <div class="playing-indicator">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   </div>
@@ -193,6 +224,52 @@ export default {
 </script>
 
 <style>
+/* CSS Custom Properties for Design System */
+:root {
+  /* Colors */
+  --color-primary: #1e3a8a;        /* Deep Blue */
+  --color-primary-light: #3b82f6;  /* Bright Blue */
+  --color-primary-dark: #1e2a7a;   /* Darker Blue */
+  --color-secondary: #1f2937;      /* Dark Gray */
+  --color-accent: #06b6d4;         /* Cyan Accent */
+  --color-background: #0f172a;     /* Very Dark Blue */
+  --color-surface: #1e293b;        /* Dark Blue Surface */
+  --color-surface-light: #334155;  /* Lighter Surface */
+  --color-text-primary: #ffffff;   /* White Text */
+  --color-text-secondary: #cbd5e1; /* Light Gray Text */
+  --color-text-muted: #94a3b8;     /* Muted Text */
+  --color-border: #334155;         /* Border Color */
+  --color-border-light: #475569;   /* Lighter Border */
+  
+  /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
+
+/* Global Styles */
 * {
   margin: 0;
   padding: 0;
@@ -200,248 +277,336 @@ export default {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background-color: #f5f5f5;
-  color: #333;
+  font-family: var(--font-family);
+  background: linear-gradient(135deg, var(--color-background) 0%, var(--color-secondary) 100%);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 #app {
   min-height: 100vh;
-}
-
-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 2rem;
-  text-align: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  font-weight: 300;
-}
-
-header p {
-  font-size: 1.1rem;
-  opacity: 0.9;
-}
-
-main {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 2rem;
-  align-items: start;
-}
-
-.vision-panel {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  padding: 2rem;
-}
-
-.timer-panel {
-  position: sticky;
-  top: 2rem;
-}
-
-.panel-header {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.panel-header h2 {
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
-}
-
-.panel-header p {
-  font-size: 1rem;
-  color: #64748b;
-}
-
-.header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 2rem;
-  margin-bottom: 0;
-  padding: 0 2rem;
-}
-
-.spotify-container {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  min-width: 180px;
 }
 
-.now-playing-label {
-  margin-top: 0.5rem;
-  text-align: right;
-  font-size: 1rem;
-  color: #1db954;
-  font-weight: 500;
-  width: 100%;
-  word-break: break-word;
-  white-space: normal;
+/* Header Styles */
+.app-header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-bottom: 1px solid var(--color-border);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.change-music-btn {
-  margin-top: 0.5rem;
-  background: linear-gradient(90deg, #191414 0%, #1db954 100%);
-  color: #fff;
-  border: none;
-  border-radius: 18px;
-  padding: 6px 18px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 1px 4px rgba(30,185,84,0.10);
-  transition: background 0.2s, transform 0.2s;
 }
 
-.change-music-btn:hover {
-  background: linear-gradient(90deg, #1db954 0%, #191414 100%);
-  transform: translateY(-1px) scale(1.03);
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
 }
 
-.change-music-icon {
-  font-size: 1.2rem;
+.brand-title {
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.025em;
 }
 
-.header-left {
+.brand-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.header-controls {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--spacing-lg);
 }
 
-.header-title {
-  flex: 1;
-  text-align: center;
-  font-size: 2.5rem;
-  font-weight: 600;
-  margin: 0;
-
-}
-
-.description {
-  text-align: center;
-  font-size: 1.2rem;
-  color: #4b5563;
-  margin-top: 0.5rem;
-}
-
-.spotify-btn {
-  display: inline-flex;
+.control-group {
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(90deg, #1db954 0%, #191414 100%);
-  color: #fff;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-label {
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: var(--spacing-xl);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  grid-template-rows: auto auto;
+  gap: var(--spacing-xl);
+  grid-template-areas: 
+    "tracking timer"
+    "media timer";
+}
+
+/* Section Styles */
+.tracking-section {
+  grid-area: tracking;
+}
+
+.timer-section {
+  grid-area: timer;
+  position: sticky;
+  top: calc(80px + var(--spacing-xl));
+  align-self: start;
+}
+
+.media-section {
+  grid-area: media;
+}
+
+.section-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.section-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-normal);
+}
+
+/* Tracking Content */
+.tracking-content {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Media Controls */
+.media-controls {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.media-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
   border: none;
-  border-radius: 24px;
-  padding: 10px 22px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(30,185,84,0.15);
-  transition: background 0.2s, transform 0.2s;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
 }
 
-.spotify-btn:hover {
-  background: linear-gradient(90deg, #1ed760 0%, #191414 100%);
-  transform: translateY(-2px) scale(1.04);
+.media-btn.primary {
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-accent) 100%);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-md);
 }
 
-.spotify-icon {
-  font-size: 1.3rem;
+.media-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
-.spotify-label {
+.media-btn.secondary {
+  background: var(--color-surface-light);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-light);
+}
+
+.media-btn.secondary:hover {
+  background: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.media-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.media-label {
+  font-size: 0.875rem;
+}
+
+/* Now Playing */
+.now-playing {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.track-info {
+  flex: 1;
+}
+
+.track-title {
   font-size: 1rem;
-  letter-spacing: 0.5px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
-.focus-label {
-  font-size: 1rem;
-  font-weight: 500;
+.track-artist {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
 }
 
-.music-animate {
-  display: inline-block;
-  margin-right: 0.5rem;
-  font-size: 1.3rem;
-  animation: music-move 1s infinite linear;
+.playing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: var(--spacing-md);
 }
 
-@keyframes music-move {
-  0%   { transform: translateY(0) scale(1); opacity: 1; }
-  20%  { transform: translateY(-3px) scale(1.1); opacity: 0.8; }
-  40%  { transform: translateY(-6px) scale(1.2); opacity: 0.7; }
-  60%  { transform: translateY(-3px) scale(1.1); opacity: 0.8; }
-  80%  { transform: translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+.wave-bar {
+  width: 3px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-accent) 100%);
+  border-radius: 2px;
+  animation: wave 1.5s ease-in-out infinite;
 }
 
-/* Responsive design */
+.wave-bar:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.wave-bar:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .workspace {
+    grid-template-columns: 1fr 350px;
+  }
+}
+
 @media (max-width: 1024px) {
-  .content-grid {
+  .workspace {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-areas: 
+      "timer"
+      "tracking"
+      "media";
   }
   
-  .timer-panel {
+  .timer-section {
     position: static;
     top: auto;
   }
 }
 
 @media (max-width: 768px) {
-  header {
-    padding: 1.5rem;
-  }
-  
-  header h1 {
-    font-size: 2rem;
-  }
-  
-  .header-row {
+  .header-content {
     flex-direction: column;
-    gap: 1rem;
-    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
   }
   
-  .spotify-container {
-    min-width: auto;
-    align-items: center;
+  .brand-title {
+    font-size: 1.75rem;
+    text-align: center;
   }
   
-  main {
-    padding: 1rem;
+  .main-content {
+    padding: var(--spacing-md);
   }
   
-  .vision-panel {
-    padding: 1rem;
+  .workspace {
+    gap: var(--spacing-lg);
   }
   
-  .panel-header h2 {
+  .tracking-content,
+  .media-controls,
+  .now-playing {
+    padding: var(--spacing-lg);
+  }
+  
+  .media-controls {
+    flex-direction: column;
+  }
+  
+  .media-btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-title {
     font-size: 1.5rem;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+  }
+  
+  .main-content {
+    padding: var(--spacing-sm);
+  }
+  
+  .workspace {
+    gap: var(--spacing-md);
+  }
+  
+  .tracking-content,
+  .media-controls,
+  .now-playing {
+    padding: var(--spacing-md);
   }
 }
 </style>

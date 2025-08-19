@@ -409,19 +409,22 @@ export default {
     
     // Watch for gesture changes
     watch(() => props.currentGesture, (newGesture, oldGesture) => {
-      console.log(`Timer gesture watch triggered: ${oldGesture} -> ${newGesture}`)
+      console.log(`=== TIMER GESTURE WATCH ===`)
+      console.log(`Gesture change: ${oldGesture} -> ${newGesture}`)
       console.log(`Gesture control enabled: ${gestureControlEnabled.value}`)
-      console.log(`Expected gesture: ${settings.pauseGesture}`)
-      console.log(`Last gesture: ${lastGesture.value}`)
+      console.log(`Expected gesture (raw): "${settings.pauseGesture}"`)
+      console.log(`Last gesture tracked: "${lastGesture.value}"`)
+      console.log(`Timer active: ${isActive.value}, paused: ${isPaused.value}`)
       
       if (!gestureControlEnabled.value) {
-        console.log(`Gesture control is disabled, skipping...`)
+        console.log(`❌ Gesture control is disabled, skipping...`)
         return
       }
       
       // Detect gesture for pause/resume
       if (newGesture === settings.pauseGesture && lastGesture.value !== newGesture) {
-        console.log(`✅ Timer gesture matched! Toggling timer...`)
+        console.log(`✅ GESTURE MATCHED! Toggling timer...`)
+        console.log(`Calling toggleTimer function...`)
         isGestureActive.value = true
         toggleTimer()
         
@@ -430,10 +433,16 @@ export default {
           isGestureActive.value = false
         }, 1000)
       } else {
-        console.log(`❌ Gesture not matched or duplicate. newGesture: "${newGesture}", expected: "${settings.pauseGesture}", lastGesture: "${lastGesture.value}"`)
+        console.log(`❌ Gesture condition not met:`)
+        console.log(`  - Gesture matches: ${newGesture === settings.pauseGesture}`)
+        console.log(`  - Not duplicate: ${lastGesture.value !== newGesture}`)
+        console.log(`  - newGesture: "${newGesture}"`)
+        console.log(`  - expected: "${settings.pauseGesture}"`)
+        console.log(`  - lastGesture: "${lastGesture.value}"`)
       }
       
       lastGesture.value = newGesture
+      console.log(`=== END TIMER GESTURE WATCH ===`)
     }, { immediate: false })
     
 
@@ -486,6 +495,8 @@ export default {
       timeLeft.value = currentSession.value.duration
       console.log(`PomodoroTimer mounted. Initial gesture: ${props.currentGesture}`)
       console.log(`Gesture control enabled: ${gestureControlEnabled.value}`)
+      console.log(`Pause gesture setting: ${settings.pauseGesture}`)
+      console.log(`Pause gesture display: ${pauseGesture.value}`)
     })
     
     onUnmounted(() => {
@@ -538,13 +549,12 @@ export default {
 
 <style scoped>
 .pomodoro-timer {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 2rem;
-  color: white;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
   max-width: 400px;
   margin: 0 auto;
 }
@@ -555,9 +565,10 @@ export default {
 }
 
 .timer-header h2 {
-  margin: 0 0 1rem 0;
-  font-size: 1.8rem;
-  font-weight: 600;
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .timer-mode {
@@ -574,13 +585,15 @@ export default {
 }
 
 .mode-badge.work-mode {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid var(--color-primary-light);
+  color: var(--color-primary-light);
 }
 
 .mode-badge.break-mode {
-  background: rgba(34, 197, 94, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(6, 182, 212, 0.2);
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
 }
 
 .session-counter {
@@ -600,7 +613,7 @@ export default {
 }
 
 .progress-ring-background {
-  stroke: rgba(255, 255, 255, 0.1);
+  stroke: var(--color-border);
 }
 
 .progress-ring-progress {
@@ -608,11 +621,11 @@ export default {
 }
 
 .progress-ring-progress.work-progress {
-  stroke: #ef4444;
+  stroke: var(--color-primary-light);
 }
 
 .progress-ring-progress.break-progress {
-  stroke: #22c55e;
+  stroke: var(--color-accent);
 }
 
 .timer-content {
@@ -648,14 +661,13 @@ export default {
 }
 
 .control-btn.primary {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  backdrop-filter: blur(8px);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-accent) 100%);
+  color: var(--color-text-primary);
 }
 
 .control-btn.primary:hover {
-  background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .control-btn.primary.pulse {
@@ -663,12 +675,14 @@ export default {
 }
 
 .control-btn.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
+  background: var(--color-surface-light);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .control-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border-light);
+  color: var(--color-text-primary);
 }
 
 .control-btn:disabled {
@@ -687,14 +701,14 @@ export default {
 .progress-bar {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: rgba(255, 255, 255, 0.6);
+  background: linear-gradient(90deg, var(--color-primary-light) 0%, var(--color-accent) 100%);
   transition: width 0.5s ease;
 }
 
@@ -742,14 +756,16 @@ export default {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  background: var(--color-surface-light);
+  border-radius: var(--radius-lg);
   margin-bottom: 0.5rem;
   transition: all 0.3s ease;
+  border: 1px solid var(--color-border);
 }
 
 .gesture-indicator.active {
-  background: rgba(34, 197, 94, 0.3);
+  background: rgba(6, 182, 212, 0.2);
+  border-color: var(--color-accent);
   transform: scale(1.02);
 }
 
@@ -780,17 +796,18 @@ export default {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
+  background: var(--color-surface-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .action-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border-light);
+  color: var(--color-text-primary);
   transform: translateY(-1px);
 }
 
@@ -809,12 +826,12 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
 .settings-modal {

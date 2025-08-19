@@ -309,9 +309,10 @@ export default {
 
 <style scoped>
 .timer-settings {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
   max-width: 600px;
   max-height: 80vh;
   overflow: hidden;
@@ -323,10 +324,10 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: var(--color-text-primary);
 }
 
 .settings-header h3 {
@@ -340,13 +341,16 @@ export default {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: white;
+  color: var(--color-text-primary);
   opacity: 0.8;
   transition: opacity 0.2s;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-md);
 }
 
 .close-btn:hover {
   opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .settings-content {
@@ -356,8 +360,8 @@ export default {
 }
 
 .settings-section {
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid #f1f5f9;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .settings-section:last-child {
@@ -365,10 +369,10 @@ export default {
 }
 
 .settings-section h4 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 var(--spacing-md) 0;
   font-size: 1.1rem;
-  font-weight: 600;
-  color: #334155;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .setting-row {
@@ -383,8 +387,8 @@ export default {
 }
 
 .setting-row label {
-  font-weight: 500;
-  color: #475569;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
@@ -396,16 +400,18 @@ export default {
 
 .time-field {
   width: 80px;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   text-align: center;
+  background: var(--color-surface-light);
+  color: var(--color-text-primary);
 }
 
 .time-unit {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 

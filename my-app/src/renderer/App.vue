@@ -142,6 +142,7 @@ export default {
     async handleGesture(gesture) {
       // Update current gesture for timer component
       this.currentGesture = gesture;
+      console.log(`App received gesture: ${gesture}, passing to timer component`);
       
       // Only toggle when gesture changes from not-palm to palm
       if (gesture === 'Pointing_Up' && this.lastGesture !== 'Pointing_Up') {

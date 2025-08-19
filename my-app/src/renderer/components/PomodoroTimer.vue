@@ -78,6 +78,10 @@
           <span class="stat-label">Focus Score</span>
           <span class="stat-value">{{ focusScore }}%</span>
         </div>
+        <div class="stat-item">
+          <span class="stat-label">Current Gesture</span>
+          <span class="stat-value">{{ currentGesture }}</span>
+        </div>
       </div>
     </div>
 
@@ -172,7 +176,7 @@ export default {
       shortBreak: 5,
       longBreak: 15,
       dailyGoal: 8,
-      pauseGesture: 'Closed_Fist',
+      pauseGesture: 'Pointing_Up',
       autoStartBreaks: false,
       focusModeSync: true,
       gestureControlEnabled: true,
@@ -404,11 +408,20 @@ export default {
     }
     
     // Watch for gesture changes
-    watch(() => props.currentGesture, (newGesture) => {
-      if (!gestureControlEnabled.value) return
+    watch(() => props.currentGesture, (newGesture, oldGesture) => {
+      console.log(`Timer gesture watch triggered: ${oldGesture} -> ${newGesture}`)
+      console.log(`Gesture control enabled: ${gestureControlEnabled.value}`)
+      console.log(`Expected gesture: ${settings.pauseGesture}`)
+      console.log(`Last gesture: ${lastGesture.value}`)
+      
+      if (!gestureControlEnabled.value) {
+        console.log(`Gesture control is disabled, skipping...`)
+        return
+      }
       
       // Detect gesture for pause/resume
       if (newGesture === settings.pauseGesture && lastGesture.value !== newGesture) {
+        console.log(`✅ Timer gesture matched! Toggling timer...`)
         isGestureActive.value = true
         toggleTimer()
         
@@ -416,10 +429,14 @@ export default {
         setTimeout(() => {
           isGestureActive.value = false
         }, 1000)
+      } else {
+        console.log(`❌ Gesture not matched or duplicate. newGesture: "${newGesture}", expected: "${settings.pauseGesture}", lastGesture: "${lastGesture.value}"`)
       }
       
       lastGesture.value = newGesture
-    })
+    }, { immediate: false })
+    
+
     
     // Watch for focus score changes
     watch(() => props.focusScore, (newScore) => {
@@ -467,6 +484,8 @@ export default {
       loadSettings()
       loadTodayTime()
       timeLeft.value = currentSession.value.duration
+      console.log(`PomodoroTimer mounted. Initial gesture: ${props.currentGesture}`)
+      console.log(`Gesture control enabled: ${gestureControlEnabled.value}`)
     })
     
     onUnmounted(() => {
@@ -689,7 +708,7 @@ export default {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
 }
 
@@ -838,7 +857,7 @@ export default {
   }
   
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
   }
   

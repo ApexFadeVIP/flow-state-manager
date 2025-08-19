@@ -72,11 +72,11 @@
         <div class="setting-row">
           <label>Pause/Resume Gesture</label>
           <select v-model="localSettings.pauseGesture" class="gesture-select">
+            <option value="Pointing_Up">👆 Pointing Up (Focus Mode)</option>
             <option value="Closed_Fist">✊ Closed Fist</option>
             <option value="Open_Palm">✋ Open Palm</option>
             <option value="Thumb_Up">👍 Thumb Up</option>
             <option value="Victory">✌️ Peace Sign</option>
-            <option value="ILoveYou">🤟 I Love You</option>
           </select>
         </div>
         
@@ -222,7 +222,7 @@ export default {
       shortBreak: 5,
       longBreak: 15,
       dailyGoal: 8,
-      pauseGesture: 'Closed_Fist',
+      pauseGesture: 'Pointing_Up',
       autoStartBreaks: false,
       focusModeSync: true,
       gestureControlEnabled: true,
@@ -261,13 +261,13 @@ export default {
     
     const getGestureEmoji = (gesture) => {
       const emojis = {
+        'Pointing_Up': '👆',
         'Closed_Fist': '✊',
         'Open_Palm': '✋',
         'Thumb_Up': '👍',
-        'Victory': '✌️',
-        'ILoveYou': '🤟'
+        'Victory': '✌️'
       }
-      return emojis[gesture] || '✋'
+      return emojis[gesture] || '👆'
     }
     
     const applyPreset = (presetName) => {
@@ -282,7 +282,7 @@ export default {
         shortBreak: 5,
         longBreak: 15,
         dailyGoal: 8,
-        pauseGesture: 'Closed_Fist',
+        pauseGesture: 'Pointing_Up',
         autoStartBreaks: false,
         focusModeSync: true,
         gestureControlEnabled: true,

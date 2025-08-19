@@ -46,7 +46,7 @@ import { ref, onMounted, onUnmounted, defineEmits } from 'vue'
 
 export default {
   name: 'GestureRecognition',
-  setup() {
+  setup(props, {emit}) {
     const videoEl = ref(null)
     const canvasEl = ref(null)
     const isCameraActive = ref(false)
@@ -55,7 +55,6 @@ export default {
     const currentGesture = ref('None')
     const fps = ref(0)
     const gestureHistory = ref([])
-    const emit = defineEmits(['gesture']);
     
     let stream = null
     let recognizer = null
@@ -188,6 +187,7 @@ export default {
         return
       }
       
+
       const now = performance.now()
       const deltaTime = now - lastFrameTime
       
@@ -221,11 +221,15 @@ export default {
             currentGesture.value = 'None'
           }
 
-          if (currentGesture.value === 'Open palm') {
-          // Emit thumbs up event
-          // For Options API: this.$emit('gesture', 'thumbs_up')
-          // For Composition API (setup): use `emit` from setup
-            emit('gesture', 'Open palm');
+          if (results.gestures && results.gestures.length > 0) {
+            const gesture = results.gestures[0][0];
+            currentGesture.value = `${gesture.categoryName} (${(gesture.score * 100).toFixed(1)}%)`;
+            // Add to history, etc.
+
+            // Emit event for open palm
+              if (gesture.categoryName === 'Open_Palm') {
+                emit('gesture', 'Open_Palm');
+              }
           }
           
           // Draw landmarks if available

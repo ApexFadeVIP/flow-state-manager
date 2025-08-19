@@ -124,9 +124,9 @@ export default {
     },
 
     async handleGesture(gesture) {
-      console.log('Gesture received:', gesture); // Add this for debugging
-      if (gesture === 'Open palm' && !this.checked) {
-        console.log("Gesture 'Open palm' detected, toggling focus mode");
+      console.log("GREAT, handling gesture"); // Add this for debugging
+      if (gesture === 'Open_Palm' && !this.checked) {
+        console.log("Gesture 'Open_Palm' detected, toggling focus mode");
         this.checked = true;
         await this.onToggle();
       }

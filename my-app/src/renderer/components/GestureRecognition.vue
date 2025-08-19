@@ -60,6 +60,8 @@ export default {
     let recognizer = null
     let animationId = null
     let lastFrameTime = 0
+    let lastGestureEmitted = 'None';
+
     
     const startCamera = async () => {
       try {
@@ -221,16 +223,29 @@ export default {
             currentGesture.value = 'None'
           }
 
-          if (results.gestures && results.gestures.length > 0) {
-            const gesture = results.gestures[0][0];
-            currentGesture.value = `${gesture.categoryName} (${(gesture.score * 100).toFixed(1)}%)`;
-            // Add to history, etc.
 
-            // Emit event for open palm
-              if (gesture.categoryName === 'Open_Palm') {
-                emit('gesture', 'Open_Palm');
-              }
-          }
+if (results.gestures && results.gestures.length > 0) {
+  const gesture = results.gestures[0][0];
+  if (gesture.categoryName === 'Open_Palm') {
+    if (lastGestureEmitted !== 'Open_Palm') {
+      emit('gesture', 'Open_Palm');
+      lastGestureEmitted = 'Open_Palm';
+    }
+  } else {
+    if (lastGestureEmitted !== 'None') {
+      emit('gesture', 'None');
+      lastGestureEmitted = 'None';
+    }
+  }
+} 
+
+
+else {
+  if (lastGestureEmitted !== 'None') {
+    emit('gesture', 'None');
+    lastGestureEmitted = 'None';
+  }
+}
           
           // Draw landmarks if available
           if (results.landmarks && canvasEl.value) {

@@ -56,7 +56,8 @@ export default {
     // When gesture detected:
       checked: false,
       nowPlaying: null,
-      spotifyPollInterval: null // Add this
+      spotifyPollInterval: null, // Add this
+      lastGesture: null,
     }
   },
   setup() {
@@ -124,15 +125,16 @@ export default {
     },
 
     async handleGesture(gesture) {
-      console.log("GREAT, handling gesture"); // Add this for debugging
-      if (gesture === 'Open_Palm' && !this.checked) {
-        console.log("Gesture 'Open_Palm' detected, toggling focus mode");
-        this.checked = true;
+      // Only toggle when gesture changes from not-palm to palm
+      if (gesture === 'Open_Palm' && this.lastGesture !== 'Open_Palm') {
+        this.checked = !this.checked;
         await this.onToggle();
+        console.log(`Focus mode is now ${this.checked ? 'ON' : 'OFF'}`);
       }
+      this.lastGesture = gesture;
     }
 
-  }
+    }
 }
 </script>
 

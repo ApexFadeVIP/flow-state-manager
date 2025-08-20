@@ -24,7 +24,7 @@ export const FOCUS_CONFIG = {
   YAW_THRESHOLD: 0.1,
   PITCH_THRESHOLD: 0.1,
   GAZE_THRESHOLD: 0.1,
-  RECOVERY_THRESHOLD: 0.1,
+
   
   // Score Weights + Penalties
   GAZE_WEIGHT: 0.25, // How much gaze direction affects the focus score
@@ -275,7 +275,6 @@ export class FocusScoreCalculator {
       yaw: Math.abs(this.yawEMA), 
       gaze: Math.abs(this.gazeXEMA), 
       pitch: Math.abs(this.pitchEMA),
-      threshold: this.config.RECOVERY_THRESHOLD,
       isInLookAwayState: this.isInLookAwayState
     })
 

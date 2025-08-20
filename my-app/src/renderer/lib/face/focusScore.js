@@ -4,6 +4,7 @@ import { FACE_LANDMARKS, calculateDistance } from './faceMesh.js'
  * Configuration constants for focus score calculation
  */
 export const FOCUS_CONFIG = {
+
   // Smoothing factors for exponential moving averages
   EMA_ALPHA_POSE: 0.1,      // For yaw/pitch/gaze
   EMA_ALPHA_SCORE: 0.05,     // For final score
@@ -23,15 +24,13 @@ export const FOCUS_CONFIG = {
   YAW_THRESHOLD: 0.1,
   PITCH_THRESHOLD: 0.1,
   GAZE_THRESHOLD: 0.1,
-  RECOVERY_THRESHOLD: 0.1,
+
   
-  // Score penalties
-  GAZE_WEIGHT: 0.45,
-  YAW_WEIGHT: 0.35,
-  PITCH_WEIGHT: 0.15,
-  BLINK_PENALTY: 0.05,
-  MOUTH_PENALTY: 0.1,
-  LOOK_AWAY_PENALTY: 0.1,
+  // Score Weights + Penalties
+  GAZE_WEIGHT: 0.25, // How much gaze direction affects the focus score
+  YAW_WEIGHT: 0.4, // How much head yaw affects the focus score
+  PITCH_WEIGHT: 0.15, // How much head pitch affects the focus score
+  LOOK_AWAY_PENALTY: 0.05,
   RECOVERY_RATE: 0.01
 }
 
@@ -249,27 +248,37 @@ export class FocusScoreCalculator {
     detectLookAway() {
     const isLookingAway = (
       Math.abs(this.yawEMA) > this.config.YAW_THRESHOLD ||
-      Math.abs(this.gazeXEMA) > this.config.GAZE_THRESHOLD ||
       Math.abs(this.pitchEMA) > this.config.PITCH_THRESHOLD
+    
     )
+    console.log('isLookingAway', isLookingAway, 'yaw:', this.yawEMA, 'gazeX:', this.gazeXEMA, 'pitch:', this.pitchEMA)
+    console.log('isLookingAway', isLookingAway)
 
     if (isLookingAway) {
       this.consecutiveLookAwayFrames++
-      if (this.consecutiveLookAwayFrames >= this.config.LOOK_AWAY_FRAMES && !this.isInLookAwayState) {
+      if ((this.consecutiveLookAwayFrames >= this.config.LOOK_AWAY_FRAMES) && !this.isInLookAwayState) {
         this.lookAwayCount++
         this.isInLookAwayState = true
+        console.log('Look away detected! Count:', this.lookAwayCount)
         // Apply immediate penalty to score
         this.scoreEMA = Math.max(0, this.scoreEMA - this.config.LOOK_AWAY_PENALTY)
       }
     } else {
       // Use hysteresis for recovery
       const isRecovered = (
-        Math.abs(this.yawEMA) < this.config.RECOVERY_THRESHOLD &&
-        Math.abs(this.gazeXEMA) < this.config.RECOVERY_THRESHOLD &&
-        Math.abs(this.pitchEMA) < this.config.RECOVERY_THRESHOLD
+        Math.abs(this.yawEMA) < this.config.YAW_THRESHOLD &&
+        Math.abs(this.pitchEMA) < this.config.PITCH_THRESHOLD
       )
-      
-      if (isRecovered) {
+
+      console.log('Recovery check:', { 
+      isRecovered, 
+      yaw: Math.abs(this.yawEMA), 
+      gaze: Math.abs(this.gazeXEMA), 
+      pitch: Math.abs(this.pitchEMA),
+      isInLookAwayState: this.isInLookAwayState
+    })
+
+      if (isRecovered && this.isInLookAwayState) {
         this.consecutiveLookAwayFrames = 0
         this.isInLookAwayState = false // Move this line here
       }
@@ -310,15 +319,18 @@ export class FocusScoreCalculator {
     const penGaze = Math.abs(this.gazeXEMA)
     const penBlink = this.recentBlink ? this.config.BLINK_PENALTY : 0
     const penMouth = this.recentMouthOpen ? this.config.MOUTH_PENALTY : 0
+    console.log('penalties', { penYaw, penPitch, penGaze, penBlink, penMouth })
 
     // 5. Calculate the raw score before smoothing
     let currentScore = 1.0 - (
-      this.config.GAZE_WEIGHT * penGaze +
+      
+      this.config.GAZE_WEIGHT * penGaze + 
       this.config.YAW_WEIGHT * penYaw +
       this.config.PITCH_WEIGHT * penPitch +
-      penBlink +
-      penMouth
+      penBlink 
     )
+
+    console.log('Raw score before smoothing:', currentScore)
     
     // 6. Apply final smoothing and recovery logic to the score
     if (!isLookingAway) {

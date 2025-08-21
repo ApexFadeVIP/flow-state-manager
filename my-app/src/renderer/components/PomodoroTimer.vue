@@ -74,10 +74,7 @@
           <span class="stat-label">Time Today</span>
           <span class="stat-value">{{ formatDuration(todayTime) }}</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Focus Score</span>
-          <span class="stat-value">{{ focusScore }}%</span>
-        </div>
+        
         <div class="stat-item">
           <span class="stat-label">Current Gesture</span>
           <span class="stat-value">{{ currentGesture }}</span>

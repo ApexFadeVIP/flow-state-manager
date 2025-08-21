@@ -28,7 +28,15 @@
           </div>
           
           <div class="tracking-content">
-            <GestureRecognition @gesture="handleGesture"/>
+            <!-- Focus Status Banner -->
+            <div v-if="checked" class="focus-status-banner" :class="`status-${focusStatus}`">
+              <div class="focus-status-label">Focus Status</div>
+              <div class="focus-status-value">{{ focusStatusLabel }}</div>
+              <div class="focus-status-score">{{ Math.round(focusScore * 100) }}%</div>
+            </div>
+
+            <!-- Unified tracker with gesture and focus tracking -->
+            <UnifiedVisionTracker @gesture="handleGesture" @focus-update="handleFocusUpdate" />
           </div>
         </section>
 
@@ -36,7 +44,7 @@
         <section class="timer-section">
           <PomodoroTimer 
             :current-gesture="currentGesture"
-            :focus-score="focusScore"
+            :focus-score="Math.round(focusScore * 100)"
             @timer-started="onTimerStarted"
             @timer-paused="onTimerPaused"
             @timer-completed="onTimerCompleted"
@@ -82,6 +90,13 @@
         </section>
       </div>
     </main>
+    <!-- Toast Notification -->
+    <div v-if="showToast" class="toast" role="status" aria-live="polite">
+      <svg class="media-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+      </svg>
+      <span class="toast-text">{{ toastMessage }}</span>
+    </div>
   </div>
 </template>
 
@@ -95,6 +110,13 @@ import { ref } from 'vue'
 export default {
   name: 'App',
   components: { SimpleToggle, UnifiedVisionTracker, GestureRecognition, PomodoroTimer },
+  computed: {
+    focusStatusLabel() {
+      if (!this.focusStatus) return 'Focused'
+      const label = this.focusStatus.charAt(0).toUpperCase() + this.focusStatus.slice(1)
+      return label
+    }
+  },
   data() {
     return {    
     // When gesture detected:
@@ -103,7 +125,16 @@ export default {
       spotifyPollInterval: null, // Add this
       lastGesture: null,
       currentGesture: 'None',
-      focusScore: 100,
+      focusScore: 1.0,
+      focusStatus: 'focused',
+      distractedStartAt: 0,
+      distractedNotifyDelayMs: 5000,
+      showToast: false,
+      toastMessage: '',
+      toastTimer: null,
+      // Cooldown to prevent repeated toggles from brief gesture flickers
+      lastFocusToggleAt: 0,
+      focusToggleCooldownMs: 1200,
     }
   },
   setup() {
@@ -174,22 +205,61 @@ export default {
       // Update current gesture for timer component
       this.currentGesture = gesture;
       console.log(`App received gesture: ${gesture}, passing to timer component`);
-      
-      // Only toggle when gesture changes from not-palm to palm
+
+      // Only toggle on rising edge with cooldown
       if (gesture === 'Pointing_Up' && this.lastGesture !== 'Pointing_Up') {
-        this.checked = !this.checked;
-        await this.onToggle();
-        console.log(`Focus mode is now ${this.checked ? 'ON' : 'OFF'}`);
+        const now = Date.now();
+        if (now - this.lastFocusToggleAt >= this.focusToggleCooldownMs) {
+          this.lastFocusToggleAt = now;
+          this.checked = !this.checked;
+          await this.onToggle();
+          console.log(`Focus mode toggled (cooldown applied)`);
+        } else {
+          console.log('Focus toggle suppressed due to cooldown');
+        }
       }else if(gesture == 'Thumb_Up' && this.lastGesture !== 'Thumb_Up'){
         this.nowPlaying = !this.nowPlaying;
         await this.playPauseSpotify();
-        console.log(`Music is ${this.nowPlaying ? 'PLAYING' : 'STOPPED'} now`);
+      console.log(`Music is ${this.nowPlaying ? PLAYING : STOPPED} now`);
       }else if(gesture == 'Victory' && this.lastGesture !== 'Victory'){
         this.nowPlaying = !this.nowPlaying;
         await this.openSpotify();
-        console.log(`Song has CHANGED now`);
+        console.log('Song has CHANGED now');
       }
       this.lastGesture = gesture;
+    },
+
+    handleFocusUpdate({ score, status }) {
+      this.focusScore = score
+      this.focusStatus = status
+
+      const scorePercent = Math.round(score * 100)
+      const isDistracted = status === 'distracted' || scorePercent <= 60
+
+      // Track time in distracted state for notification
+      const now = Date.now()
+      if (isDistracted && this.checked) {
+        if (!this.distractedStartAt) {
+          this.distractedStartAt = now
+        } else if (now - this.distractedStartAt >= this.distractedNotifyDelayMs) {
+          this.maybeShowToast('You seem distracted. Take a breath or refocus?')
+          // Prevent repeated notifications; require re-focus before next
+          this.distractedStartAt = now + 60_000 // next eligible after 60s unless refocused
+        }
+      } else {
+        this.distractedStartAt = 0
+      }
+    },
+
+    maybeShowToast(message) {
+      if (this.showToast) return
+      this.toastMessage = message
+      this.showToast = true
+      if (this.toastTimer) clearTimeout(this.toastTimer)
+      this.toastTimer = setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 3500)
     },
 
     // Timer event handlers
@@ -410,6 +480,67 @@ body {
   padding: var(--spacing-xl);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
+}
+
+/* Focus Status Banner */
+.focus-status-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--color-border-light);
+}
+
+.focus-status-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.focus-status-value {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.focus-status-score {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.status-focused {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.status-distracted {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.status-unfocused {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 2000;
+}
+.toast-text {
+  color: var(--color-text-primary);
 }
 
 /* Media Controls */

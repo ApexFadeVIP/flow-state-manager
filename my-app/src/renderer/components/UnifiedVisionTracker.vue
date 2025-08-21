@@ -40,7 +40,7 @@
       
       <div class="status-section">
         <h3>Focus Tracking</h3>
-        <p>Focus Score: {{ focusScore.toFixed(2) }}</p>
+        <p>Focus Score: {{ (focusScore * 100).toFixed(2) }}%</p>
         <p>Status: {{ focusStatus }}</p>
         <p>Look Aways: {{ lookAwayCount }}</p>
         <p>Blinks: {{ blinkCount }}</p>
@@ -86,7 +86,8 @@ import { FocusScoreCalculator } from '../lib/face/focusScore.js'
 
 export default {
   name: 'UnifiedVisionTracker',
-  setup() {
+  emits: ['gesture', 'focus-update'],
+  setup(props, { emit }) {
     // Video and canvas refs
     const videoEl = ref(null)
     const canvasEl = ref(null)
@@ -123,6 +124,15 @@ export default {
     let focusCalculator = null
     let animationId = null
     let lastFrameTime = 0
+    
+    // Gesture stability filtering
+    let stableGestureName = 'None'
+    let pendingGestureName = 'None'
+    let gestureChangeStartedAt = 0
+    const gestureStableMs = 500 // require gesture to be steady before emitting
+    const noneStableMs = 250 // require brief stability before emitting None
+    const minConfidence = 0.7
+    let lastGestureEmitAt = 0
     
     const startCamera = async () => {
       try {
@@ -347,29 +357,55 @@ export default {
           // Update FPS
           fps.value = Math.round(1000 / deltaTime)
           
-          // Handle gesture results
+          // Handle gesture results with stability filtering
+          let detectedName = 'None'
+          let detectedScore = 0
           if (gestureResults && gestureResults.gestures && gestureResults.gestures.length > 0) {
             const gesture = gestureResults.gestures[0][0]
-            currentGesture.value = gesture.categoryName
-            gestureConfidence.value = Math.round(gesture.score * 100)
+            detectedName = gesture.categoryName
+            detectedScore = gesture.score || 0
+            gestureConfidence.value = Math.round(detectedScore * 100)
             
             // Add to history (only significant gestures with confidence > 70%)
-            if (gesture.score > 0.7) {
+            if (detectedScore > minConfidence) {
               gestureHistory.value.unshift({
-                name: gesture.categoryName,
-                confidence: gesture.score,
+                name: detectedName,
+                confidence: detectedScore,
                 timestamp: new Date().toLocaleTimeString()
               })
-              
-              // Keep only last 10 gestures
               if (gestureHistory.value.length > 10) {
                 gestureHistory.value = gestureHistory.value.slice(0, 10)
               }
             }
           } else {
-            currentGesture.value = 'None'
             gestureConfidence.value = 0
           }
+          
+          // Apply confidence threshold
+          if (detectedScore < minConfidence) {
+            detectedName = 'None'
+          }
+          
+          // Update pending/stable gesture state
+          if (detectedName !== pendingGestureName) {
+            pendingGestureName = detectedName
+            gestureChangeStartedAt = now
+          } else {
+            const elapsed = now - gestureChangeStartedAt
+            const threshold = detectedName === 'None' ? noneStableMs : gestureStableMs
+            if (elapsed >= threshold && stableGestureName !== detectedName) {
+              // Debounce emits so we don't spam rapid flips
+              stableGestureName = detectedName
+              currentGesture.value = stableGestureName
+              if (now - lastGestureEmitAt >= 200) {
+                emit('gesture', stableGestureName)
+                lastGestureEmitAt = now
+              }
+            }
+          }
+          
+          // Always reflect the last stable gesture in UI
+          currentGesture.value = stableGestureName
           
           // Handle face results
           if (faceResults && faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0) {
@@ -393,6 +429,9 @@ export default {
               ear: focusResult.metrics.ear,
               isLookingAway: focusResult.metrics.isLookingAway
             })
+
+            // Emit focus update to parent (App.vue)
+            emit('focus-update', { score: focusScore.value, status: focusStatus.value })
           }
           
           // Draw overlays on canvas
@@ -476,7 +515,7 @@ export default {
       ctx.lineWidth = 3
       ctx.font = '16px Arial'
       
-      const statusText = `Focus: ${focusScore.value.toFixed(2)} | ${currentGesture.value} (${gestureConfidence.value}%)`
+      const statusText = `Focus: ${(focusScore.value * 100).toFixed(2)}% | ${currentGesture.value} (${gestureConfidence.value}%)`
       
       // Draw text with outline
       ctx.strokeText(statusText, 10, 30)
@@ -590,6 +629,17 @@ video {
   background-color: #f8f9fa;
   padding: 15px;
   border-radius: 4px;
+}
+
+/* Ensure metrics text renders black on light cards */
+.status-section,
+.status-section p,
+.details-grid,
+.gesture-history,
+.focus-metrics,
+.metric-item,
+.gesture-history li {
+  color: #000;
 }
 
 .status-section h3 {

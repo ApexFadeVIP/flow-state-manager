@@ -168,6 +168,20 @@
             Auto-pause when focus drops too low
           </label>
         </div>
+
+        <div class="setting-row">
+          <label>Distracted notification delay</label>
+          <div class="time-input">
+            <input 
+              type="number" 
+              v-model.number="localSettings.distractedDelaySeconds" 
+              min="1" 
+              max="120"
+              class="time-field"
+            />
+            <span class="time-unit">seconds</span>
+          </div>
+        </div>
       </div>
       
       <div class="settings-section">
@@ -229,6 +243,7 @@ export default {
       soundEnabled: true,
       minFocusScore: 70,
       pauseOnLowFocus: false,
+      distractedDelaySeconds: 5,
       ...props.settings
     })
     
@@ -288,7 +303,8 @@ export default {
         gestureControlEnabled: true,
         soundEnabled: true,
         minFocusScore: 70,
-        pauseOnLowFocus: false
+        pauseOnLowFocus: false,
+        distractedDelaySeconds: 5
       })
     }
     

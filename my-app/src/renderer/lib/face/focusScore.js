@@ -78,6 +78,25 @@ export class FocusScoreCalculator {
     this.lastBlinkTime = 0
     this.frameCount = 0
     this.startTime = Date.now()
+    
+    // Cognitive load tracking
+    this.cognitiveLoadHistory = []
+    this.microExpressionCount = 0
+    this.eyeStrainLevel = 0
+    this.mentaFatigueScore = 0
+    this.sessionStartTime = Date.now()
+    this.lastCognitiveUpdate = 0
+    this.cognitiveLoadEMA = 0.5
+    
+    // Session data for reporting
+    this.sessionData = {
+      startTime: Date.now(),
+      cognitiveLoadSamples: [],
+      peakStressPoints: [],
+      lowFocusPeriods: [],
+      breakSuggestions: [],
+      overallMetrics: {}
+    }
   }
 
   /**
@@ -351,7 +370,10 @@ export class FocusScoreCalculator {
                     (1 - this.config.EMA_ALPHA_SCORE) * this.scoreEMA
     this.scoreEMA = this.clamp01(this.scoreEMA)
 
-    // 7. Return the complete, structured result object
+    // 7. Calculate cognitive load metrics
+    const cognitiveMetrics = this.calculateCognitiveLoad(landmarks)
+
+    // 8. Return the complete, structured result object
     return {
       score: this.scoreEMA,
       metrics: {
@@ -365,11 +387,202 @@ export class FocusScoreCalculator {
         blinkRate: this.blinkRate,
         isLookingAway,
         penalties: { penYaw, penPitch, penGaze, penBlink, penMouth }
+      },
+      cognitiveLoad: cognitiveMetrics
+    }
+  
+    }
+  
+
+  /**
+   * Calculate cognitive load metrics based on facial analysis
+   */
+  calculateCognitiveLoad(landmarks) {
+    const now = Date.now()
+    
+    // Eye strain calculation (based on EAR and blink patterns)
+    const leftEAR = this.calculateEAR(landmarks, FACE_LANDMARKS.LEFT_EYE)
+    const rightEAR = this.calculateEAR(landmarks, FACE_LANDMARKS.RIGHT_EYE)
+    const avgEAR = (leftEAR + rightEAR) / 2
+    
+    // Micro-expression detection (based on rapid facial changes)
+    const faceMovement = Math.abs(this.yawEMA) + Math.abs(this.pitchEMA) + Math.abs(this.gazeXEMA)
+    if (faceMovement > 0.15) {
+      this.microExpressionCount++
+    }
+    
+    // Eye strain level (inverse relationship with EAR)
+    this.eyeStrainLevel = Math.max(0, 1 - (avgEAR / 0.3)) * 100
+    
+    // Mental fatigue based on multiple factors
+    const blinkRateStress = Math.min(this.blinkRate / 30, 1) // Normalize blink rate
+    const lookAwayStress = Math.min(this.lookAwayCount / 10, 1) // Normalize look-away count
+    const focusStress = 1 - this.scoreEMA // Inverse focus score
+    
+    this.mentaFatigueScore = (blinkRateStress * 0.3 + lookAwayStress * 0.3 + focusStress * 0.4) * 100
+    
+    // Overall cognitive load
+    const cognitiveLoad = (this.eyeStrainLevel * 0.4 + this.mentaFatigueScore * 0.6) / 100
+    this.cognitiveLoadEMA = 0.1 * cognitiveLoad + 0.9 * this.cognitiveLoadEMA
+    
+    // Store sample every 5 seconds for history tracking
+    if (now - this.lastCognitiveUpdate >= 5000) {
+      const sample = {
+        timestamp: now,
+        cognitiveLoad: this.cognitiveLoadEMA,
+        eyeStrain: this.eyeStrainLevel,
+        mentalFatigue: this.mentaFatigueScore,
+        focusScore: this.scoreEMA,
+        microExpressions: this.microExpressionCount
       }
+      
+      this.cognitiveLoadHistory.push(sample)
+      this.sessionData.cognitiveLoadSamples.push(sample)
+      
+      // Keep only last 50 samples (about 4 minutes of history)
+      if (this.cognitiveLoadHistory.length > 50) {
+        this.cognitiveLoadHistory.shift()
+      }
+      
+      // Detect stress peaks
+      if (this.cognitiveLoadEMA > 0.8) {
+        this.sessionData.peakStressPoints.push({
+          timestamp: now,
+          level: this.cognitiveLoadEMA
+        })
+      }
+      
+      // Detect low focus periods
+      if (this.scoreEMA < 0.4) {
+        this.sessionData.lowFocusPeriods.push({
+          timestamp: now,
+          focusLevel: this.scoreEMA
+        })
+      }
+      
+      this.lastCognitiveUpdate = now
     }
-  
+    
+    return {
+      cognitiveLoad: this.cognitiveLoadEMA,
+      eyeStrain: this.eyeStrainLevel,
+      mentalFatigue: this.mentaFatigueScore,
+      microExpressions: this.microExpressionCount,
+      history: this.cognitiveLoadHistory
     }
+  }
   
+  /**
+   * Generate smart break suggestions based on cognitive patterns
+   */
+  generateBreakSuggestions() {
+    const suggestions = []
+    
+    if (this.eyeStrainLevel > 70) {
+      suggestions.push({
+        type: 'eye_rest',
+        priority: 'high',
+        title: '👁️ Eye Rest Break',
+        description: 'Look away from screen for 20 seconds, focus on distant objects',
+        duration: '20 seconds'
+      })
+    }
+    
+    if (this.mentaFatigueScore > 60) {
+      suggestions.push({
+        type: 'mental_reset',
+        priority: 'medium',
+        title: '🧠 Mental Reset',
+        description: 'Take 5 deep breaths and do light stretching',
+        duration: '2-3 minutes'
+      })
+    }
+    
+    if (this.cognitiveLoadEMA > 0.75) {
+      suggestions.push({
+        type: 'active_break',
+        priority: 'high',
+        title: '🚶 Active Break',
+        description: 'Walk around, get fresh air, or do light exercise',
+        duration: '5-10 minutes'
+      })
+    }
+    
+    if (this.blinkRate < 10) {
+      suggestions.push({
+        type: 'blink_exercise',
+        priority: 'low',
+        title: '👀 Blink Exercise',
+        description: 'Consciously blink 20 times slowly to lubricate eyes',
+        duration: '30 seconds'
+      })
+    }
+    
+    return suggestions
+  }
+  
+  /**
+   * Get session report data
+   */
+  getSessionReport() {
+    const duration = Date.now() - this.sessionData.startTime
+    const samples = this.sessionData.cognitiveLoadSamples
+    
+    if (samples.length === 0) {
+      return null
+    }
+    
+    // Calculate averages
+    const avgCognitiveLoad = samples.reduce((sum, s) => sum + s.cognitiveLoad, 0) / samples.length
+    const avgEyeStrain = samples.reduce((sum, s) => sum + s.eyeStrain, 0) / samples.length
+    const avgMentalFatigue = samples.reduce((sum, s) => sum + s.mentalFatigue, 0) / samples.length
+    const avgFocusScore = samples.reduce((sum, s) => sum + s.focusScore, 0) / samples.length
+    
+    // Find peaks and lows
+    const maxCognitiveLoad = Math.max(...samples.map(s => s.cognitiveLoad))
+    const minFocusScore = Math.min(...samples.map(s => s.focusScore))
+    
+    // Generate insights
+    const insights = []
+    if (avgCognitiveLoad > 0.7) {
+      insights.push('High cognitive load detected throughout session')
+    }
+    if (avgEyeStrain > 60) {
+      insights.push('Significant eye strain observed')
+    }
+    if (this.sessionData.peakStressPoints.length > 3) {
+      insights.push('Multiple stress peaks detected')
+    }
+    if (avgFocusScore > 0.7) {
+      insights.push('Good focus maintained overall')
+    }
+    
+    return {
+      duration,
+      averages: {
+        cognitiveLoad: avgCognitiveLoad,
+        eyeStrain: avgEyeStrain,
+        mentalFatigue: avgMentalFatigue,
+        focusScore: avgFocusScore
+      },
+      peaks: {
+        maxCognitiveLoad,
+        minFocusScore
+      },
+      events: {
+        stressPeaks: this.sessionData.peakStressPoints.length,
+        lowFocusPeriods: this.sessionData.lowFocusPeriods.length,
+        totalBlinks: this.blinkCount,
+        totalLookAways: this.lookAwayCount
+      },
+      insights,
+      breakSuggestions: this.generateBreakSuggestions(),
+      heatMapData: samples.map(s => ({
+        time: s.timestamp - this.sessionData.startTime,
+        value: s.cognitiveLoad
+      }))
+    }
+  }
 
   /**
    * Get current focus status

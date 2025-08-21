@@ -9,6 +9,22 @@
         </div>
         
         <div class="header-controls">
+          <nav class="app-navigation">
+            <button 
+              @click="activeTab = 'focus'" 
+              class="nav-btn"
+              :class="{ active: activeTab === 'focus' }"
+            >
+              🎯 Focus
+            </button>
+            <button 
+              @click="activeTab = 'cognitive'" 
+              class="nav-btn"
+              :class="{ active: activeTab === 'cognitive' }"
+            >
+              🧠 Cognitive Load
+            </button>
+          </nav>
           <div class="control-group">
             <SimpleToggle v-model="checked" @change="onToggle" />
             <span class="control-label">Focus Mode</span>
@@ -19,7 +35,8 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <div class="workspace">
+      <!-- Focus Tab -->
+      <div v-if="activeTab === 'focus'" class="workspace">
         <!-- Vision Tracking Section -->
         <section class="tracking-section">
           <div class="section-header">
@@ -36,7 +53,11 @@
             </div>
 
             <!-- Unified tracker with gesture and focus tracking -->
-            <UnifiedVisionTracker @gesture="handleGesture" @focus-update="handleFocusUpdate" />
+            <UnifiedVisionTracker 
+              @gesture="handleGesture" 
+              @focus-update="handleFocusUpdate"
+              @cognitive-update="handleCognitiveUpdate"
+            />
           </div>
         </section>
 
@@ -48,6 +69,7 @@
             @timer-started="onTimerStarted"
             @timer-paused="onTimerPaused"
             @timer-completed="onTimerCompleted"
+            @pomodoro-cycle-completed="onPomodoroCycleCompleted"
             @session-changed="onSessionChanged"
             @focus-mode-toggle="onFocusModeToggle"
           />
@@ -89,6 +111,15 @@
           </div>
         </section>
       </div>
+
+      <!-- Cognitive Load Tab -->
+      <div v-if="activeTab === 'cognitive'" class="cognitive-tab">
+        <CognitiveLoadVisualization 
+          :cognitive-data="cognitiveData"
+          :break-suggestions="breakSuggestions"
+          @break-taken="handleBreakTaken"
+        />
+      </div>
     </main>
     <!-- Toast Notification -->
     <div v-if="showToast" class="toast" role="status" aria-live="polite">
@@ -97,6 +128,16 @@
       </svg>
       <span class="toast-text">{{ toastMessage }}</span>
     </div>
+
+    <!-- Session Report Modal -->
+    <SessionReport 
+      v-if="showSessionReport"
+      :report-data="sessionReportData"
+      :previous-sessions="previousSessions"
+      @close="closeSessionReport"
+      @start-new-session="startNewSession"
+      @save-report="saveSessionReport"
+    />
   </div>
 </template>
 
@@ -105,11 +146,20 @@ import SimpleToggle from "../main/components/ToggleSwitch.vue"
 import GestureRecognition from "./components/GestureRecognition.vue"
 import UnifiedVisionTracker from './components/UnifiedVisionTracker.vue'
 import PomodoroTimer from './components/PomodoroTimer.vue'
+import CognitiveLoadVisualization from './components/CognitiveLoadVisualization.vue'
+import SessionReport from './components/SessionReport.vue'
 import { ref } from 'vue'
 
 export default {
   name: 'App',
-  components: { SimpleToggle, UnifiedVisionTracker, GestureRecognition, PomodoroTimer },
+  components: { 
+    SimpleToggle, 
+    UnifiedVisionTracker, 
+    GestureRecognition, 
+    PomodoroTimer,
+    CognitiveLoadVisualization,
+    SessionReport
+  },
   computed: {
     focusStatusLabel() {
       if (!this.focusStatus) return 'Focused'
@@ -135,6 +185,22 @@ export default {
       // Cooldown to prevent repeated toggles from brief gesture flickers
       lastFocusToggleAt: 0,
       focusToggleCooldownMs: 1200,
+      
+      // Cognitive load data
+      cognitiveData: {
+        cognitiveLoad: 0.5,
+        eyeStrain: 30,
+        mentalFatigue: 40,
+        microExpressions: 0,
+        history: []
+      },
+      breakSuggestions: [],
+      
+      // Session reporting
+      showSessionReport: false,
+      sessionReportData: null,
+      previousSessions: [],
+      focusCalculator: null,
     }
   },
   setup() {
@@ -262,6 +328,111 @@ export default {
       }, 3500)
     },
 
+    handleCognitiveUpdate(cognitiveLoadData) {
+      this.cognitiveData = { ...cognitiveLoadData }
+      
+      // Update break suggestions if cognitive load is high
+      if (cognitiveLoadData.cognitiveLoad > 0.7 || cognitiveLoadData.eyeStrain > 60) {
+        this.updateBreakSuggestions()
+      }
+    },
+
+    updateBreakSuggestions() {
+      // This would normally come from the focus calculator
+      // For now, we'll generate basic suggestions based on current state
+      const suggestions = []
+      
+      if (this.cognitiveData.eyeStrain > 60) {
+        suggestions.push({
+          type: 'eye_rest',
+          priority: 'high',
+          title: '👁️ Eye Rest Break',
+          description: 'Look away from screen for 20 seconds, focus on distant objects',
+          duration: '20 seconds'
+        })
+      }
+      
+      if (this.cognitiveData.cognitiveLoad > 0.7) {
+        suggestions.push({
+          type: 'mental_break',
+          priority: 'medium',
+          title: '🧠 Mental Break',
+          description: 'Take a few deep breaths and stretch your body',
+          duration: '2-3 minutes'
+        })
+      }
+      
+      this.breakSuggestions = suggestions
+    },
+
+    handleBreakTaken(suggestion) {
+      this.maybeShowToast(`Taking ${suggestion.title.replace(/[^\w\s]/gi, '')} - Great choice!`)
+      // Could track break history here
+    },
+
+    // Session report methods
+    onTimerCompleted(data) {
+      console.log('Timer completed:', data)
+    },
+
+    onPomodoroCycleCompleted(data) {
+      console.log('Pomodoro cycle completed:', data)
+      this.generateSessionReport()
+    },
+
+    generateSessionReport() {
+      // Get session report from focus calculator if available
+      if (this.focusCalculator) {
+        const reportData = this.focusCalculator.getSessionReport()
+        if (reportData) {
+          this.sessionReportData = reportData
+          this.showSessionReport = true
+          
+          // Save session to history
+          this.previousSessions.push({
+            timestamp: Date.now(),
+            focusScore: reportData.averages.focusScore,
+            cognitiveLoad: reportData.averages.cognitiveLoad,
+            duration: reportData.duration
+          })
+          
+          // Keep only last 10 sessions
+          if (this.previousSessions.length > 10) {
+            this.previousSessions = this.previousSessions.slice(-10)
+          }
+        }
+      }
+    },
+
+    closeSessionReport() {
+      this.showSessionReport = false
+      this.sessionReportData = null
+    },
+
+    startNewSession() {
+      this.closeSessionReport()
+      // Reset cognitive load data for new session
+      this.cognitiveData = {
+        cognitiveLoad: 0.5,
+        eyeStrain: 30,
+        mentalFatigue: 40,
+        microExpressions: 0,
+        history: []
+      }
+      this.breakSuggestions = []
+    },
+
+    saveSessionReport(reportData) {
+      // Save to localStorage or external storage
+      const reports = JSON.parse(localStorage.getItem('focusSessionReports') || '[]')
+      reports.push({
+        ...reportData,
+        savedAt: Date.now()
+      })
+      localStorage.setItem('focusSessionReports', JSON.stringify(reports))
+      this.maybeShowToast('Session report saved successfully!')
+    },
+
     // Timer event handlers
     onTimerStarted(data) {
       console.log('Timer started:', data);
@@ -269,11 +440,6 @@ export default {
 
     onTimerPaused(data) {
       console.log('Timer paused:', data);
-    },
-
-    onTimerCompleted(data) {
-      console.log('Timer completed:', data);
-      // Show notification or celebratory message
     },
 
     onSessionChanged(data) {
@@ -404,6 +570,37 @@ body {
   gap: var(--spacing-lg);
 }
 
+/* Navigation */
+.app-navigation {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-right: var(--spacing-lg);
+}
+
+.nav-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.nav-btn.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-sm);
+}
+
 .control-group {
   display: flex;
   align-items: center;
@@ -480,6 +677,11 @@ body {
   padding: var(--spacing-xl);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
+}
+
+/* Cognitive Tab */
+.cognitive-tab {
+  min-height: calc(100vh - 140px);
 }
 
 /* Focus Status Banner */

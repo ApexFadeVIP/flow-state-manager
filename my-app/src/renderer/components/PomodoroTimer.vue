@@ -137,7 +137,7 @@ export default {
       default: 100
     }
   },
-  emits: ['timer-started', 'timer-paused', 'timer-completed', 'session-changed', 'focus-mode-toggle'],
+  emits: ['timer-started', 'timer-paused', 'timer-completed', 'session-changed', 'focus-mode-toggle', 'pomodoro-cycle-completed'],
   setup(props, { emit }) {
     // Timer state
     const isActive = ref(false)
@@ -336,6 +336,14 @@ export default {
         session: currentSession.value,
         completedPomodoros: completedPomodoros.value
       })
+      
+      // Check if this completes a full pomodoro cycle (work session)
+      if (currentSession.value.type === 'work') {
+        emit('pomodoro-cycle-completed', {
+          completedPomodoros: completedPomodoros.value,
+          sessionType: currentSession.value.type
+        })
+      }
       
       // Move to next session
       currentSessionIndex.value = (currentSessionIndex.value + 1) % sessionTypes.length

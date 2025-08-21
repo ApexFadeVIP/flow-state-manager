@@ -86,7 +86,7 @@ import { FocusScoreCalculator } from '../lib/face/focusScore.js'
 
 export default {
   name: 'UnifiedVisionTracker',
-  emits: ['gesture', 'focus-update'],
+  emits: ['gesture', 'focus-update', 'cognitive-update'],
   setup(props, { emit }) {
     // Video and canvas refs
     const videoEl = ref(null)
@@ -432,6 +432,11 @@ export default {
 
             // Emit focus update to parent (App.vue)
             emit('focus-update', { score: focusScore.value, status: focusStatus.value })
+            
+            // Emit cognitive load data
+            if (focusResult.cognitiveLoad) {
+              emit('cognitive-update', focusResult.cognitiveLoad)
+            }
           }
           
           // Draw overlays on canvas

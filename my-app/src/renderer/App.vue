@@ -123,7 +123,7 @@
     </main>
     <!-- Toast Notification -->
     <div v-if="showToast" class="toast" role="status" aria-live="polite">
-      <svg class="media-icon" viewBox="0 0 24 24" fill="currentColor">
+      <svg class="toast-icon" viewBox="0 0 24 24" fill="currentColor">
         <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
       </svg>
       <span class="toast-text">{{ toastMessage }}</span>
@@ -325,7 +325,7 @@ export default {
       this.toastTimer = setTimeout(() => {
         this.showToast = false
         this.toastMessage = ''
-      }, 3500)
+      }, 8000)
     },
 
     handleCognitiveUpdate(cognitiveLoadData) {
@@ -732,17 +732,29 @@ body {
   right: 20px;
   bottom: 20px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 20px 24px;
   box-shadow: var(--shadow-xl);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
   z-index: 2000;
+  min-width: 320px;
+  max-width: 450px;
 }
 .toast-text {
   color: var(--color-text-primary);
+  font-size: 1.1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+}
+
+.toast-icon {
+  width: 24px;
+  height: 24px;
+  color: #f59e0b;
+  flex-shrink: 0;
 }
 
 /* Media Controls */

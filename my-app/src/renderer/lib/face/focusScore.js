@@ -5,9 +5,18 @@ import { FACE_LANDMARKS, calculateDistance } from './faceMesh.js'
  */
 export const FOCUS_CONFIG = {
 
+  // --- NEW: Score Weights & Penalties ---
+  GAZE_EFFECT: 0.5,         // How much gaze direction affects the focus score
+  YAW_EFFECT: 0.3,          // How much head yaw affects the focus score
+  PITCH_EFFECT: 0.2,        // How much head pitch affects the focus score
+
   // Smoothing factors for exponential moving averages
   EMA_ALPHA_POSE: 0.1,      // For yaw/pitch/gaze
   EMA_ALPHA_SCORE: 0.05,     // For final score
+
+  // --- NEW: Score Smoothing & Recovery ---
+  EMA_SMOOTHING_SCORE: 0.05,    // How quickly the score updates (lower is smoother)
+  RECOVERY_SMOOTHING_RATE: 0.005,     // How quickly the score recovers when focused (per frame)
   
   // Threshold tuning constants
   K_YAW: 2.5,               // Yaw sensitivity multiplier
@@ -26,11 +35,13 @@ export const FOCUS_CONFIG = {
   GAZE_THRESHOLD: 0.1,
 
   
-  // Score Weights + Penalties
-  GAZE_WEIGHT: 0.25, // How much gaze direction affects the focus score
-  YAW_WEIGHT: 0.4, // How much head yaw affects the focus score
-  PITCH_WEIGHT: 0.15, // How much head pitch affects the focus score
-  LOOK_AWAY_PENALTY: 0.05,
+  // Score penalties
+  GAZE_WEIGHT: 0.45,
+  YAW_WEIGHT: 0.35,
+  PITCH_WEIGHT: 0.15,
+  BLINK_PENALTY: 0.05,
+  MOUTH_PENALTY: 0.1,
+  LOOK_AWAY_PENALTY: 0.1,
   RECOVERY_RATE: 0.01
 }
 
@@ -323,14 +334,12 @@ export class FocusScoreCalculator {
 
     // 5. Calculate the raw score before smoothing
     let currentScore = 1.0 - (
-      
       this.config.GAZE_WEIGHT * penGaze + 
       this.config.YAW_WEIGHT * penYaw +
       this.config.PITCH_WEIGHT * penPitch +
-      penBlink 
+      penBlink +
+      penMouth
     )
-
-    console.log('Raw score before smoothing:', currentScore)
     
     // 6. Apply final smoothing and recovery logic to the score
     if (!isLookingAway) {

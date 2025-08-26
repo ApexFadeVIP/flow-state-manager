@@ -24,59 +24,7 @@
       <button @click="resetFocusTracking" :disabled="!isCameraActive">Reset Focus</button>
     </div>
     
-    <div class="status-grid">
-      <div class="status-section">
-        <h3>System Status</h3>
-        <p>Camera: {{ cameraStatus }}</p>
-        <p>Models: {{ modelStatus }}</p>
-        <p>FPS: {{ fps }}</p>
-      </div>
-      
-      <div class="status-section">
-        <h3>Gesture Recognition</h3>
-        <p>Current Gesture: {{ currentGesture }}</p>
-        <p>Confidence: {{ gestureConfidence }}%</p>
-      </div>
-      
-      <div class="status-section">
-        <h3>Focus Tracking</h3>
-        <p>Focus Score: {{ (focusScore * 100).toFixed(2) }}%</p>
-        <p>Status: {{ focusStatus }}</p>
-        <p>Look Aways: {{ lookAwayCount }}</p>
-        <p>Blinks: {{ blinkCount }}</p>
-        <p>Blink Rate: {{ blinkRate }}/min</p>
-      </div>
-    </div>
-    
-    <div class="details-grid">
-      <div class="gesture-history">
-        <h3>Recent Gestures</h3>
-        <ul>
-          <li v-for="(gesture, index) in gestureHistory" :key="index">
-            {{ gesture.name }} ({{ gesture.confidence.toFixed(2) }}) - {{ gesture.timestamp }}
-          </li>
-        </ul>
-      </div>
-      
-      <div class="focus-metrics">
-        <h3>Focus Metrics</h3>
-        <div class="metric-item">
-          <span>Head Yaw:</span> {{ headPose.yaw.toFixed(3) }}
-        </div>
-        <div class="metric-item">
-          <span>Head Pitch:</span> {{ headPose.pitch.toFixed(3) }}
-        </div>
-        <div class="metric-item">
-          <span>Gaze X:</span> {{ headPose.gazeX.toFixed(3) }}
-        </div>
-        <div class="metric-item">
-          <span>Eye Aspect Ratio:</span> {{ headPose.ear.toFixed(3) }}
-        </div>
-        <div class="metric-item">
-          <span>Looking Away:</span> {{ headPose.isLookingAway ? 'Yes' : 'No' }}
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -623,100 +571,9 @@ video {
   background-color: #0056b3;
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
 
-.status-section {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
-}
-
-/* Ensure metrics text renders black on light cards */
-.status-section,
-.status-section p,
-.details-grid,
-.gesture-history,
-.focus-metrics,
-.metric-item,
-.gesture-history li {
-  color: #000;
-}
-
-.status-section h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  color: #495057;
-}
-
-.status-section p {
-  margin: 5px 0;
-  font-family: monospace;
-}
-
-.details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.gesture-history,
-.focus-metrics {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
-}
-
-.gesture-history h3,
-.focus-metrics h3 {
-  margin-top: 0;
-  color: #495057;
-}
-
-.gesture-history ul {
-  list-style: none;
-  padding: 0;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.gesture-history li {
-  padding: 5px 0;
-  border-bottom: 1px solid #dee2e6;
-  font-size: 14px;
-}
-
-.gesture-history li:last-child {
-  border-bottom: none;
-}
-
-.metric-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  border-bottom: 1px solid #dee2e6;
-  font-size: 14px;
-}
-
-.metric-item:last-child {
-  border-bottom: none;
-}
-
-.metric-item span:first-child {
-  font-weight: 500;
-}
 
 @media (max-width: 768px) {
-  .details-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .status-grid {
-    grid-template-columns: 1fr;
-  }
+  /* Responsive styles can be added here if needed */
 }
 </style>

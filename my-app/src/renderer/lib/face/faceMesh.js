@@ -6,7 +6,7 @@ import { Camera } from '@mediapipe/camera_utils'
  */
 async function resolveFaceMeshBaseUrl() {
   const candidates = [
-    '/mediapipe/face_mesh/',
+    './mediapipe/face_mesh/',
     'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/'
   ]
   for (const base of candidates) {

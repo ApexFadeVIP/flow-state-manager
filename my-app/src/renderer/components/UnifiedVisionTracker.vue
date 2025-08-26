@@ -157,10 +157,10 @@ export default {
     
     const testWasmFiles = async () => {
       const wasmFiles = [
-        '/wasm/vision_wasm_internal.wasm',
-        '/wasm/vision_wasm_internal.js',
-        '/wasm/vision_wasm_nosimd_internal.wasm',
-        '/wasm/vision_wasm_nosimd_internal.js'
+        './wasm/vision_wasm_internal.wasm',
+        './wasm/vision_wasm_internal.js',
+        './wasm/vision_wasm_nosimd_internal.wasm',
+        './wasm/vision_wasm_nosimd_internal.js'
       ]
       
       console.log('Testing WASM file accessibility...')
@@ -196,12 +196,12 @@ export default {
         
         // Initialize the FilesetResolver (shared for both models)
         console.log('Initializing FilesetResolver...')
-        const visionMedia = await FilesetResolver.forVisionTasks('/wasm')
+        const visionMedia = await FilesetResolver.forVisionTasks('./wasm')
         console.log('FilesetResolver initialized successfully')
         
         // Load the gesture recognition model
         console.log('Loading gesture model...')
-        const gestureModelUrl = '/models/gesture_recognizer.task'
+        const gestureModelUrl = './models/gesture_recognizer.task'
         
         try {
           const response = await fetch(gestureModelUrl)
@@ -225,7 +225,7 @@ export default {
         
         // Load the face landmarker model
         console.log('Loading face landmarker model...')
-        const faceModelUrl = '/models/face_landmarker.task'
+        const faceModelUrl = './models/face_landmarker.task'
         
         try {
           const response = await fetch(faceModelUrl)

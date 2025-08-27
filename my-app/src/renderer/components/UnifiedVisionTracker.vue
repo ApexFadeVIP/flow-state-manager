@@ -21,7 +21,6 @@
     <div class="controls">
       <button @click="startCamera" :disabled="isCameraActive">Start Camera</button>
       <button @click="stopCamera" :disabled="!isCameraActive">Stop Camera</button>
-      <button @click="resetFocusTracking" :disabled="!isCameraActive">Reset Focus</button>
     </div>
     
 

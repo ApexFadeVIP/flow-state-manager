@@ -79,14 +79,15 @@ export class FocusScoreCalculator {
     this.frameCount = 0
     this.startTime = Date.now()
     
-    // Cognitive load tracking
-    this.cognitiveLoadHistory = []
-    this.microExpressionCount = 0
-    this.eyeStrainLevel = 0
-    this.mentaFatigueScore = 0
+    // Advanced focus analysis tracking
+    this.analysisHistory = [] // {ts, yaw, pitch, gazeX, ear, mar, score}
+    this.blinkTimestamps = []
+    this.lookAwayTimeline = [] // {start, end, maxDev, area}
     this.sessionStartTime = Date.now()
-    this.lastCognitiveUpdate = 0
-    this.cognitiveLoadEMA = 0.5
+    this.lastAnalysisUpdate = 0
+    this.distractionEvents = [] // {type, start, end, severity}
+    this.flowStreakStart = null
+    this.baselineMetrics = null // first 5 minutes baseline
     
     // Session data for reporting
     this.sessionData = {
@@ -370,8 +371,8 @@ export class FocusScoreCalculator {
                     (1 - this.config.EMA_ALPHA_SCORE) * this.scoreEMA
     this.scoreEMA = this.clamp01(this.scoreEMA)
 
-    // 7. Calculate cognitive load metrics
-    const cognitiveMetrics = this.calculateCognitiveLoad(landmarks)
+    // 7. Calculate advanced focus analysis metrics
+    const analysisMetrics = this.calculateAdvancedAnalysis(landmarks)
 
     // 8. Return the complete, structured result object
     return {
@@ -388,123 +389,237 @@ export class FocusScoreCalculator {
         isLookingAway,
         penalties: { penYaw, penPitch, penGaze, penBlink, penMouth }
       },
-      cognitiveLoad: cognitiveMetrics
+      analysis: analysisMetrics
     }
   
     }
   
 
   /**
-   * Calculate cognitive load metrics based on facial analysis
+   * Update analysis history with current frame data
    */
-  calculateCognitiveLoad(landmarks) {
+  updateAnalysisHistory(yaw, pitch, gazeX, ear, mar) {
+    const now = Date.now()
+    this.analysisHistory.push({
+      ts: now,
+      yaw: this.yawEMA,
+      pitch: this.pitchEMA,
+      gazeX: this.gazeXEMA,
+      ear,
+      mar,
+      score: this.scoreEMA
+    })
+    
+    // Keep 60 seconds of history
+    while (this.analysisHistory.length > 0 && now - this.analysisHistory[0].ts > 60000) {
+      this.analysisHistory.shift()
+    }
+    
+    // Track blink timestamps
+    if (this.recentBlink) {
+      this.blinkTimestamps.push(now)
+      // Keep only last 60 seconds of blinks
+      this.blinkTimestamps = this.blinkTimestamps.filter(ts => now - ts <= 60000)
+    }
+  }
+
+  /**
+   * Calculate windowed analysis metrics
+   */
+  calculateWindowAnalysis(windowMs = 30000) {
+    const now = Date.now()
+    const window = this.analysisHistory.filter(h => now - h.ts <= windowMs)
+    
+    if (window.length < 5) {
+      return {
+        stabilityIndex: 0,
+        fixationRatio: 0,
+        saccadesPerMin: 0,
+        perclos: 0,
+        drowsiness: 0,
+        speakingRatio: 0,
+        movementEnergy: 0,
+        flowStreakSec: 0,
+        distractionType: 'none'
+      }
+    }
+
+    // Utility functions
+    const vals = key => window.map(h => h[key])
+    const variance = arr => {
+      const mean = arr.reduce((a,b) => a+b, 0) / arr.length
+      return arr.reduce((sum, x) => sum + (x - mean) * (x - mean), 0) / arr.length
+    }
+    const diffs = arr => arr.slice(1).map((x, i) => x - arr[i])
+    const clamp01 = v => Math.max(0, Math.min(1, v))
+    const rms = arr => Math.sqrt(arr.reduce((sum, x) => sum + x*x, 0) / Math.max(1, arr.length))
+
+    // Get variance and velocity data
+    const yawVar = variance(vals('yaw'))
+    const pitchVar = variance(vals('pitch'))
+    const gazeVar = variance(vals('gazeX'))
+    const yawVel = diffs(vals('yaw'))
+    const pitchVel = diffs(vals('pitch'))
+    const gazeVel = diffs(vals('gazeX'))
+
+    // Focus Stability Index (FSI)
+    const normVar = (v, scale = 0.04) => Math.min(1, v / scale)
+    const stabilityIndex = clamp01(1 - (0.4 * normVar(gazeVar) + 0.3 * normVar(yawVar) + 0.3 * normVar(pitchVar)))
+
+    // Saccade detection
+    const saccadeThresh = 0.08
+    const saccades = gazeVel.filter(v => Math.abs(v) > saccadeThresh).length
+    const saccadesPerMin = saccades * (60000 / windowMs)
+
+    // Fixation ratio
+    const fixationStd = Math.sqrt(gazeVar)
+    const fixationRatio = clamp01(1 - fixationStd / 0.1)
+
+    // PERCLOS (percentage of eye closure)
+    const perclos = window.filter(h => h.ear < this.config.BLINK_EAR_THRESHOLD).length / window.length
+
+    // Drowsiness index
+    const blinkRate = this.blinkRate // already per minute
+    const drowsiness = clamp01(0.6 * perclos + 0.4 * Math.min(1, blinkRate / 30))
+
+    // Speaking ratio
+    const speakingRatio = window.filter(h => h.mar > this.config.MOUTH_MAR_THRESHOLD).length / window.length
+
+    // Movement energy (RMS of velocities)
+    const movementEnergy = Math.min(1, (rms(yawVel) + rms(pitchVel) + rms(gazeVel)) / 0.3)
+
+    // Flow streak calculation
+    let flowStreakSec = 0
+    for (let i = window.length - 1; i >= 0; i--) {
+      if (window[i].score > 0.7 && movementEnergy < 0.7) {
+        flowStreakSec += (i === window.length - 1 ? 0 : (window[i + 1].ts - window[i].ts) / 1000)
+      } else {
+        break
+      }
+    }
+
+    // Distraction classification
+    const distractionType = this.classifyDistraction(window)
+
+    return {
+      stabilityIndex: Math.round(stabilityIndex * 100) / 100,
+      fixationRatio: Math.round(fixationRatio * 100) / 100,
+      saccadesPerMin: Math.round(saccadesPerMin),
+      perclos: Math.round(perclos * 100) / 100,
+      drowsiness: Math.round(drowsiness * 100) / 100,
+      speakingRatio: Math.round(speakingRatio * 100) / 100,
+      movementEnergy: Math.round(movementEnergy * 100) / 100,
+      flowStreakSec: Math.round(flowStreakSec),
+      distractionType
+    }
+  }
+
+  /**
+   * Classify type of distraction based on movement patterns
+   */
+  classifyDistraction(window) {
+    if (window.length < 5) return 'none'
+    
+    const recent = window.slice(-10) // Last 10 samples
+    const avgYaw = Math.abs(recent.reduce((sum, h) => sum + h.yaw, 0) / recent.length)
+    const avgPitch = Math.abs(recent.reduce((sum, h) => sum + h.pitch, 0) / recent.length)
+    const avgGaze = Math.abs(recent.reduce((sum, h) => sum + h.gazeX, 0) / recent.length)
+    const avgMar = recent.reduce((sum, h) => sum + h.mar, 0) / recent.length
+
+    const yawHigh = avgYaw > this.config.YAW_THRESHOLD
+    const pitchHigh = avgPitch > this.config.PITCH_THRESHOLD
+    const gazeHigh = avgGaze > this.config.GAZE_THRESHOLD
+    const speaking = avgMar > this.config.MOUTH_MAR_THRESHOLD
+
+    if (speaking) return 'speech'
+    if ((yawHigh || pitchHigh) && gazeHigh) return 'combined'
+    if (yawHigh || pitchHigh) return 'head'
+    if (gazeHigh) return 'eye'
+    return 'none'
+  }
+
+  /**
+   * Calculate advanced focus analysis metrics
+   */
+  calculateAdvancedAnalysis(landmarks) {
     const now = Date.now()
     
-    // Eye strain calculation (based on EAR and blink patterns)
+    // Calculate basic metrics
     const leftEAR = this.calculateEAR(landmarks, FACE_LANDMARKS.LEFT_EYE)
     const rightEAR = this.calculateEAR(landmarks, FACE_LANDMARKS.RIGHT_EYE)
     const avgEAR = (leftEAR + rightEAR) / 2
+    const mar = this.calculateMAR(landmarks)
     
-    // Micro-expression detection (based on rapid facial changes)
-    const faceMovement = Math.abs(this.yawEMA) + Math.abs(this.pitchEMA) + Math.abs(this.gazeXEMA)
-    if (faceMovement > 0.15) {
-      this.microExpressionCount++
+    // Update history
+    this.updateAnalysisHistory(this.yawEMA, this.pitchEMA, this.gazeXEMA, avgEAR, mar)
+    
+    // Calculate windowed metrics every second
+    if (now - this.lastAnalysisUpdate >= 1000) {
+      const analysis = this.calculateWindowAnalysis(30000)
+      
+      // Update baseline if within first 5 minutes
+      if (!this.baselineMetrics && now - this.sessionStartTime <= 300000) {
+        this.updateBaseline()
+      }
+      
+      this.lastAnalysisUpdate = now
+      return analysis
     }
     
-    // Eye strain level (inverse relationship with EAR)
-    this.eyeStrainLevel = Math.max(0, 1 - (avgEAR / 0.3)) * 100
+    // Return previous analysis or defaults
+    return this.calculateWindowAnalysis(30000)
+  }
+
+  /**
+   * Update baseline metrics for first 5 minutes
+   */
+  updateBaseline() {
+    if (this.analysisHistory.length < 50) return // Need sufficient data
     
-    // Mental fatigue based on multiple factors
-    const blinkRateStress = Math.min(this.blinkRate / 30, 1) // Normalize blink rate
-    const lookAwayStress = Math.min(this.lookAwayCount / 10, 1) // Normalize look-away count
-    const focusStress = 1 - this.scoreEMA // Inverse focus score
-    
-    this.mentaFatigueScore = (blinkRateStress * 0.3 + lookAwayStress * 0.3 + focusStress * 0.4) * 100
-    
-    // Overall cognitive load
-    const cognitiveLoad = (this.eyeStrainLevel * 0.4 + this.mentaFatigueScore * 0.6) / 100
-    this.cognitiveLoadEMA = 0.1 * cognitiveLoad + 0.9 * this.cognitiveLoadEMA
-    
-    // Store sample every 5 seconds for history tracking
-    if (now - this.lastCognitiveUpdate >= 5000) {
-      const sample = {
-        timestamp: now,
-        cognitiveLoad: this.cognitiveLoadEMA,
-        eyeStrain: this.eyeStrainLevel,
-        mentalFatigue: this.mentaFatigueScore,
-        focusScore: this.scoreEMA,
-        microExpressions: this.microExpressionCount
-      }
-      
-      this.cognitiveLoadHistory.push(sample)
-      this.sessionData.cognitiveLoadSamples.push(sample)
-      
-      // Keep only last 50 samples (about 4 minutes of history)
-      if (this.cognitiveLoadHistory.length > 50) {
-        this.cognitiveLoadHistory.shift()
-      }
-      
-      // Detect stress peaks
-      if (this.cognitiveLoadEMA > 0.8) {
-        this.sessionData.peakStressPoints.push({
-          timestamp: now,
-          level: this.cognitiveLoadEMA
-        })
-      }
-      
-      // Detect low focus periods
-      if (this.scoreEMA < 0.4) {
-        this.sessionData.lowFocusPeriods.push({
-          timestamp: now,
-          focusLevel: this.scoreEMA
-        })
-      }
-      
-      this.lastCognitiveUpdate = now
-    }
-    
-    return {
-      cognitiveLoad: this.cognitiveLoadEMA,
-      eyeStrain: this.eyeStrainLevel,
-      mentalFatigue: this.mentaFatigueScore,
-      microExpressions: this.microExpressionCount,
-      history: this.cognitiveLoadHistory
+    const baselineWindow = this.analysisHistory.slice(-50) // Last 50 samples
+    this.baselineMetrics = {
+      avgBlinkRate: this.blinkRate,
+      avgYaw: baselineWindow.reduce((sum, h) => sum + Math.abs(h.yaw), 0) / baselineWindow.length,
+      avgPitch: baselineWindow.reduce((sum, h) => sum + Math.abs(h.pitch), 0) / baselineWindow.length,
+      avgGaze: baselineWindow.reduce((sum, h) => sum + Math.abs(h.gazeX), 0) / baselineWindow.length,
+      avgScore: baselineWindow.reduce((sum, h) => sum + h.score, 0) / baselineWindow.length
     }
   }
   
   /**
-   * Generate smart break suggestions based on cognitive patterns
+   * Generate smart break suggestions based on focus analysis patterns
    */
   generateBreakSuggestions() {
     const suggestions = []
+    const currentAnalysis = this.calculateWindowAnalysis(30000)
     
-    if (this.eyeStrainLevel > 70) {
+    if (currentAnalysis.drowsiness > 0.7) {
       suggestions.push({
         type: 'eye_rest',
         priority: 'high',
-        title: '👁️ Eye Rest Break',
-        description: 'Look away from screen for 20 seconds, focus on distant objects',
-        duration: '20 seconds'
+        title: '👁️ Drowsiness Alert',
+        description: 'High drowsiness detected. Take a 5-minute break and look at distant objects',
+        duration: '5 minutes'
       })
     }
     
-    if (this.mentaFatigueScore > 60) {
+    if (currentAnalysis.stabilityIndex < 0.3) {
       suggestions.push({
-        type: 'mental_reset',
+        type: 'focus_reset',
         priority: 'medium',
-        title: '🧠 Mental Reset',
-        description: 'Take 5 deep breaths and do light stretching',
+        title: '🎯 Focus Reset',
+        description: 'Low stability detected. Take deep breaths and refocus on your task',
         duration: '2-3 minutes'
       })
     }
     
-    if (this.cognitiveLoadEMA > 0.75) {
+    if (currentAnalysis.movementEnergy > 0.8) {
       suggestions.push({
         type: 'active_break',
-        priority: 'high',
-        title: '🚶 Active Break',
-        description: 'Walk around, get fresh air, or do light exercise',
-        duration: '5-10 minutes'
+        priority: 'medium',
+        title: '🚶 Movement Break',
+        description: 'High restlessness detected. Take a short walk or do stretches',
+        duration: '3-5 minutes'
       })
     }
     
@@ -513,8 +628,18 @@ export class FocusScoreCalculator {
         type: 'blink_exercise',
         priority: 'low',
         title: '👀 Blink Exercise',
-        description: 'Consciously blink 20 times slowly to lubricate eyes',
+        description: 'Low blink rate. Consciously blink 20 times slowly to lubricate eyes',
         duration: '30 seconds'
+      })
+    }
+    
+    if (currentAnalysis.flowStreakSec > 1800) { // 30 minutes
+      suggestions.push({
+        type: 'maintenance_break',
+        priority: 'low',
+        title: '⏰ Maintenance Break',
+        description: 'Great focus streak! Take a short break to maintain performance',
+        duration: '2-3 minutes'
       })
     }
     
@@ -522,64 +647,84 @@ export class FocusScoreCalculator {
   }
   
   /**
-   * Get session report data
+   * Get session report data with advanced focus analysis
    */
   getSessionReport() {
-    const duration = Date.now() - this.sessionData.startTime
-    const samples = this.sessionData.cognitiveLoadSamples
+    const duration = Date.now() - this.sessionStartTime
     
-    if (samples.length === 0) {
+    if (this.analysisHistory.length === 0) {
       return null
     }
     
-    // Calculate averages
-    const avgCognitiveLoad = samples.reduce((sum, s) => sum + s.cognitiveLoad, 0) / samples.length
-    const avgEyeStrain = samples.reduce((sum, s) => sum + s.eyeStrain, 0) / samples.length
-    const avgMentalFatigue = samples.reduce((sum, s) => sum + s.mentalFatigue, 0) / samples.length
-    const avgFocusScore = samples.reduce((sum, s) => sum + s.focusScore, 0) / samples.length
+    // Get recent samples for analysis
+    const recentSamples = this.analysisHistory.slice(-50) // Last 50 samples
     
-    // Find peaks and lows
-    const maxCognitiveLoad = Math.max(...samples.map(s => s.cognitiveLoad))
-    const minFocusScore = Math.min(...samples.map(s => s.focusScore))
+    // Calculate averages
+    const avgStability = recentSamples.reduce((sum, s) => sum + s.score, 0) / recentSamples.length
+    const avgScore = recentSamples.reduce((sum, s) => sum + s.score, 0) / recentSamples.length
+    
+    // Get current analysis
+    const currentAnalysis = this.calculateWindowAnalysis(30000)
+    
+    // Find best and worst periods
+    const maxScore = Math.max(...recentSamples.map(s => s.score))
+    const minScore = Math.min(...recentSamples.map(s => s.score))
     
     // Generate insights
     const insights = []
-    if (avgCognitiveLoad > 0.7) {
-      insights.push('High cognitive load detected throughout session')
+    if (currentAnalysis.stabilityIndex > 0.7) {
+      insights.push('Excellent focus stability maintained')
     }
-    if (avgEyeStrain > 60) {
-      insights.push('Significant eye strain observed')
+    if (currentAnalysis.drowsiness > 0.6) {
+      insights.push('High drowsiness detected - consider breaks')
     }
-    if (this.sessionData.peakStressPoints.length > 3) {
-      insights.push('Multiple stress peaks detected')
+    if (currentAnalysis.flowStreakSec > 600) { // 10 minutes
+      insights.push(`Great focus streak: ${Math.round(currentAnalysis.flowStreakSec/60)} minutes`)
     }
-    if (avgFocusScore > 0.7) {
-      insights.push('Good focus maintained overall')
+    if (avgScore > 0.7) {
+      insights.push('Strong overall focus performance')
+    }
+    if (currentAnalysis.saccadesPerMin > 40) {
+      insights.push('High eye movement - possible visual distraction')
+    }
+    
+    // Calculate baseline z-scores if available
+    let baselineComparison = null
+    if (this.baselineMetrics) {
+      const currentBlinkRateZ = (this.blinkRate - this.baselineMetrics.avgBlinkRate) / Math.max(1, this.baselineMetrics.avgBlinkRate * 0.3)
+      const currentScoreZ = (avgScore - this.baselineMetrics.avgScore) / Math.max(0.1, this.baselineMetrics.avgScore * 0.2)
+      
+      baselineComparison = {
+        blinkRateZ: Math.round(currentBlinkRateZ * 100) / 100,
+        scoreZ: Math.round(currentScoreZ * 100) / 100
+      }
     }
     
     return {
       duration,
       averages: {
-        cognitiveLoad: avgCognitiveLoad,
-        eyeStrain: avgEyeStrain,
-        mentalFatigue: avgMentalFatigue,
-        focusScore: avgFocusScore
+        stabilityIndex: currentAnalysis.stabilityIndex,
+        focusScore: Math.round(avgScore * 100) / 100,
+        drowsiness: currentAnalysis.drowsiness,
+        movementEnergy: currentAnalysis.movementEnergy
       },
       peaks: {
-        maxCognitiveLoad,
-        minFocusScore
+        maxScore,
+        minScore,
+        bestFlowStreak: currentAnalysis.flowStreakSec
       },
       events: {
-        stressPeaks: this.sessionData.peakStressPoints.length,
-        lowFocusPeriods: this.sessionData.lowFocusPeriods.length,
         totalBlinks: this.blinkCount,
-        totalLookAways: this.lookAwayCount
+        totalLookAways: this.lookAwayCount,
+        saccadesPerMin: currentAnalysis.saccadesPerMin,
+        distractionType: currentAnalysis.distractionType
       },
       insights,
+      baselineComparison,
       breakSuggestions: this.generateBreakSuggestions(),
-      heatMapData: samples.map(s => ({
-        time: s.timestamp - this.sessionData.startTime,
-        value: s.cognitiveLoad
+      heatMapData: recentSamples.map((s, i) => ({
+        time: i * 1000, // Approximate time
+        value: s.score
       }))
     }
   }

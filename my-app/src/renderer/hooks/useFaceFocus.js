@@ -39,6 +39,19 @@ export function useFaceFocus() {
       penMouth: 0
     }
   })
+
+  // Advanced focus analysis metrics
+  const analysis = reactive({
+    stabilityIndex: 0,
+    fixationRatio: 0,
+    saccadesPerMin: 0,
+    perclos: 0,
+    drowsiness: 0,
+    speakingRatio: 0,
+    movementEnergy: 0,
+    flowStreakSec: 0,
+    distractionType: 'none'
+  })
   
   // Internal state
   let faceMesh = null
@@ -108,6 +121,11 @@ export function useFaceFocus() {
       
       // Update detailed metrics
       Object.assign(metrics, result.metrics)
+      
+      // Update analysis metrics
+      if (result.analysis) {
+        Object.assign(analysis, result.analysis)
+      }
       
       // Update status
       status.value = calculator.getFocusStatus()
@@ -283,6 +301,19 @@ export function useFaceFocus() {
           penMouth: 0
         }
       })
+
+      // Reset analysis metrics
+      Object.assign(analysis, {
+        stabilityIndex: 0,
+        fixationRatio: 0,
+        saccadesPerMin: 0,
+        perclos: 0,
+        drowsiness: 0,
+        speakingRatio: 0,
+        movementEnergy: 0,
+        flowStreakSec: 0,
+        distractionType: 'none'
+      })
     }
   }
   
@@ -368,6 +399,7 @@ export function useFaceFocus() {
     isActive,
     events,
     metrics,
+    analysis,
     
     // Methods
     start,

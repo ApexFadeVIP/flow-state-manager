@@ -15,14 +15,14 @@
               class="nav-btn"
               :class="{ active: activeTab === 'focus' }"
             >
-              🎯 Focus
+              Focus
             </button>
             <button 
-              @click="activeTab = 'cognitive'" 
+              @click="activeTab = 'analysis'" 
               class="nav-btn"
-              :class="{ active: activeTab === 'cognitive' }"
+              :class="{ active: activeTab === 'analysis' }"
             >
-              🧠 Cognitive Load
+                Focus Analysis
             </button>
           </nav>
           <div class="control-group">
@@ -54,9 +54,10 @@
 
             <!-- Unified tracker with gesture and focus tracking -->
             <UnifiedVisionTracker 
+              ref="tracker"
               @gesture="handleGesture" 
               @focus-update="handleFocusUpdate"
-              @cognitive-update="handleCognitiveUpdate"
+              @analysis-update="handleAnalysisUpdate"
             />
           </div>
         </section>
@@ -112,10 +113,11 @@
         </section>
       </div>
 
-      <!-- Cognitive Load Tab -->
-      <div v-if="activeTab === 'cognitive'" class="cognitive-tab">
-        <CognitiveLoadVisualization 
-          :cognitive-data="cognitiveData"
+      <!-- Advanced Focus Analysis Tab -->
+      <div v-if="activeTab === 'analysis'" class="analysis-tab">
+        <AdvancedFocusAnalysis 
+          :analysis-data="analysisData"
+          :focus-history="focusHistory"
           :break-suggestions="breakSuggestions"
           @break-taken="handleBreakTaken"
         />
@@ -146,7 +148,7 @@ import SimpleToggle from "../main/components/ToggleSwitch.vue"
 import GestureRecognition from "./components/GestureRecognition.vue"
 import UnifiedVisionTracker from './components/UnifiedVisionTracker.vue'
 import PomodoroTimer from './components/PomodoroTimer.vue'
-import CognitiveLoadVisualization from './components/CognitiveLoadVisualization.vue'
+import AdvancedFocusAnalysis from './components/AdvancedFocusAnalysis.vue'
 import SessionReport from './components/SessionReport.vue'
 import { ref } from 'vue'
 
@@ -157,7 +159,7 @@ export default {
     UnifiedVisionTracker, 
     GestureRecognition, 
     PomodoroTimer,
-    CognitiveLoadVisualization,
+    AdvancedFocusAnalysis,
     SessionReport
   },
   computed: {
@@ -186,21 +188,26 @@ export default {
       lastFocusToggleAt: 0,
       focusToggleCooldownMs: 1200,
       
-      // Cognitive load data
-      cognitiveData: {
-        cognitiveLoad: 0.5,
-        eyeStrain: 30,
-        mentalFatigue: 40,
-        microExpressions: 0,
-        history: []
+      // Advanced focus analysis data
+      analysisData: {
+        stabilityIndex: 0,
+        fixationRatio: 0,
+        saccadesPerMin: 0,
+        perclos: 0,
+        drowsiness: 0,
+        speakingRatio: 0,
+        movementEnergy: 0,
+        flowStreakSec: 0,
+        distractionType: 'none'
       },
+      focusHistory: [],
       breakSuggestions: [],
       
-      // Session reporting
+      // Session reporting (in-memory for current run)
       showSessionReport: false,
       sessionReportData: null,
       previousSessions: [],
-      focusCalculator: null,
+      
     }
   },
   setup() {
@@ -328,11 +335,22 @@ export default {
       }, 8000)
     },
 
-    handleCognitiveUpdate(cognitiveLoadData) {
-      this.cognitiveData = { ...cognitiveLoadData }
+    handleAnalysisUpdate(analysisData) {
+      this.analysisData = { ...analysisData }
       
-      // Update break suggestions if cognitive load is high
-      if (cognitiveLoadData.cognitiveLoad > 0.7 || cognitiveLoadData.eyeStrain > 60) {
+      // Add to focus history for charts
+      this.focusHistory.push({
+        timestamp: Date.now(),
+        ...analysisData
+      })
+      
+      // Keep only last 100 samples
+      if (this.focusHistory.length > 100) {
+        this.focusHistory.shift()
+      }
+      
+      // Update break suggestions if drowsiness is high or stability is low
+      if (analysisData.drowsiness > 0.7 || (analysisData.stabilityIndex > 0 && analysisData.stabilityIndex < 0.3)) {
         this.updateBreakSuggestions()
       }
     },
@@ -342,23 +360,33 @@ export default {
       // For now, we'll generate basic suggestions based on current state
       const suggestions = []
       
-      if (this.cognitiveData.eyeStrain > 60) {
+      if (this.analysisData.drowsiness > 0.7) {
         suggestions.push({
-          type: 'eye_rest',
+          type: 'drowsiness_break',
           priority: 'high',
-          title: '👁️ Eye Rest Break',
-          description: 'Look away from screen for 20 seconds, focus on distant objects',
-          duration: '20 seconds'
+          title: '😴 Drowsiness Alert',
+          description: 'High drowsiness detected. Take a 5-minute break and look at distant objects',
+          duration: '5 minutes'
         })
       }
       
-      if (this.cognitiveData.cognitiveLoad > 0.7) {
+      if (this.analysisData.stabilityIndex > 0 && this.analysisData.stabilityIndex < 0.3) {
         suggestions.push({
-          type: 'mental_break',
-          priority: 'medium',
-          title: '🧠 Mental Break',
-          description: 'Take a few deep breaths and stretch your body',
+          type: 'stability_reset',
+          priority: 'medium', 
+          title: '🎯 Focus Reset',
+          description: 'Low stability detected. Take deep breaths and refocus on your task',
           duration: '2-3 minutes'
+        })
+      }
+
+      if (this.analysisData.movementEnergy > 0.8) {
+        suggestions.push({
+          type: 'movement_break',
+          priority: 'medium',
+          title: '🚶 Movement Break',
+          description: 'High restlessness detected. Take a short walk or do stretches',
+          duration: '3-5 minutes'
         })
       }
       
@@ -381,22 +409,18 @@ export default {
     },
 
     generateSessionReport() {
-      // Get session report from focus calculator if available
-      if (this.focusCalculator) {
-        const reportData = this.focusCalculator.getSessionReport()
+      const tracker = this.$refs.tracker
+      if (tracker && tracker.getSessionReport) {
+        const reportData = tracker.getSessionReport()
         if (reportData) {
           this.sessionReportData = reportData
           this.showSessionReport = true
-          
-          // Save session to history
           this.previousSessions.push({
             timestamp: Date.now(),
             focusScore: reportData.averages.focusScore,
-            cognitiveLoad: reportData.averages.cognitiveLoad,
+            stabilityIndex: reportData.averages.stabilityIndex,
             duration: reportData.duration
           })
-          
-          // Keep only last 10 sessions
           if (this.previousSessions.length > 10) {
             this.previousSessions = this.previousSessions.slice(-10)
           }
@@ -411,26 +435,30 @@ export default {
 
     startNewSession() {
       this.closeSessionReport()
-      // Reset cognitive load data for new session
-      this.cognitiveData = {
-        cognitiveLoad: 0.5,
-        eyeStrain: 30,
-        mentalFatigue: 40,
-        microExpressions: 0,
-        history: []
+      // Reset analysis data for new session
+      this.analysisData = {
+        stabilityIndex: 0,
+        fixationRatio: 0,
+        saccadesPerMin: 0,
+        perclos: 0,
+        drowsiness: 0,
+        speakingRatio: 0,
+        movementEnergy: 0,
+        flowStreakSec: 0,
+        distractionType: 'none'
       }
+      this.focusHistory = []
       this.breakSuggestions = []
+      // Also reset tracker session metrics so next session starts fresh
+      const tracker = this.$refs.tracker
+      if (tracker && tracker.resetSession) {
+        tracker.resetSession()
+      }
     },
 
     saveSessionReport(reportData) {
-      // Save to localStorage or external storage
-      const reports = JSON.parse(localStorage.getItem('focusSessionReports') || '[]')
-      reports.push({
-        ...reportData,
-        savedAt: Date.now()
-      })
-      localStorage.setItem('focusSessionReports', JSON.stringify(reports))
-      this.maybeShowToast('Session report saved successfully!')
+      // Demo: in-memory only for this run
+      this.maybeShowToast('Session report saved for this run (not persisted).')
     },
 
     // Timer event handlers
@@ -679,8 +707,8 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
-/* Cognitive Tab */
-.cognitive-tab {
+/* Analysis Tab */
+.analysis-tab {
   min-height: calc(100vh - 140px);
 }
 

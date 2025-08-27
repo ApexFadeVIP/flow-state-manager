@@ -34,7 +34,7 @@ import { FocusScoreCalculator } from '../lib/face/focusScore.js'
 
 export default {
   name: 'UnifiedVisionTracker',
-  emits: ['gesture', 'focus-update', 'cognitive-update'],
+  emits: ['gesture', 'focus-update', 'analysis-update'],
   setup(props, { emit }) {
     // Video and canvas refs
     const videoEl = ref(null)
@@ -153,6 +153,16 @@ export default {
           isLookingAway: false
         })
       }
+    }
+
+    // Expose session utilities to parent
+    const getSessionReport = () => {
+      if (!focusCalculator) return null
+      return focusCalculator.getSessionReport()
+    }
+
+    const resetSession = () => {
+      resetFocusTracking()
     }
     
     const testWasmFiles = async () => {
@@ -381,9 +391,9 @@ export default {
             // Emit focus update to parent (App.vue)
             emit('focus-update', { score: focusScore.value, status: focusStatus.value })
             
-            // Emit cognitive load data
-            if (focusResult.cognitiveLoad) {
-              emit('cognitive-update', focusResult.cognitiveLoad)
+            // Emit advanced analysis data
+            if (focusResult.analysis) {
+              emit('analysis-update', focusResult.analysis)
             }
           }
           
@@ -516,7 +526,9 @@ export default {
       // Methods
       startCamera,
       stopCamera,
-      resetFocusTracking
+      resetFocusTracking,
+      getSessionReport,
+      resetSession
     }
   }
 }

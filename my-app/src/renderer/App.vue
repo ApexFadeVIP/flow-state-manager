@@ -36,7 +36,7 @@
     <!-- Main Content -->
     <main class="main-content">
       <!-- Focus Tab -->
-      <div v-if="activeTab === 'focus'" class="workspace">
+      <div v-show="activeTab === 'focus'" class="workspace">
         <!-- Vision Tracking Section -->
         <section class="tracking-section">
           <div class="section-header">

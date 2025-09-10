@@ -1,0 +1,76 @@
+appId: com.flowstate.manager
+productName: UltraFlow
+copyright: Copyright © 2025
+asar: true
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - dist/renderer/**/*
+  - src/main/**/*
+  - public/**/*
+  - node_modules/**/*
+  - package.json
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*.d.ts"
+  - "!**/node_modules/.bin"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!.editorconfig"
+  - "!**/._*"
+  - "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+
+extraResources:
+  - from: "public/mediapipe"
+    to: "mediapipe"
+  - from: "public/models"
+    to: "models"
+  - from: "public/wasm"
+    to: "wasm"
+  - from: "src/main/applescripts"
+    to: "applescripts"
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  gatekeeperAssess: false
+  hardenedRuntime: true
+  notarize: false
+  extendInfo:
+    NSCameraUsageDescription: "This app uses the camera to track focus and gestures."
+    NSMicrophoneUsageDescription: "Microphone may be used for features that require audio input."
+    NSAppleEventsUsageDescription: "Allows controlling Spotify and Focus mode via Apple Events."
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+  title: Flow State Manager
+
+win:
+  target: nsis
+  icon: build/icon.ico
+
+linux:
+  target: AppImage
+  icon: build/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
